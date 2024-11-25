@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "635211791287",
+    "project_id": "agrieldo-bc336",
+    "storage_bucket": "agrieldo-bc336.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:635211791287:android:05b98f8786f84ee3d58632",
+        "android_client_info": {
+          "package_name": "com.agrieldo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCbO-POx-0GnoyGOCN-gbVZAA9SIM0Xce0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
