@@ -1,6 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { View, Button, Alert, StyleSheet, Dimensions, Modal, TextInput } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import React, {useEffect, useState} from 'react';
+import {
+  View,
+  Button,
+  Alert,
+  StyleSheet,
+  Dimensions,
+  Modal,
+  TextInput,
+} from 'react-native';
+import MapView, {Marker} from 'react-native-maps';
 import Geolocation from '@react-native-community/geolocation';
 import CustomMarker from '../assets/medical.png'; // Adjust the path to your image
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -11,7 +19,7 @@ const DashboardScreen = () => {
   const [vets, setVets] = useState([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [description, setDescription] = useState('');
-  const [userId, setUserId] = useState(null);  // Store user ID for WebSocket connection
+  const [userId, setUserId] = useState(null); // Store user ID for WebSocket connection
   const [socket, setSocket] = useState(null); // WebSocket connection
   const [socketReady, setSocketReady] = useState(false); // Track WebSocket readiness
 
@@ -30,80 +38,82 @@ const DashboardScreen = () => {
   };
 
   // Set up WebSocket connection using the user ID
- const setupWebSocket = async (userId) => {
-  if (userId) {
-    const socketUrl = `ws://104.248.23.245/ws/location/${userId}/`;
-    console.log(`Attempting to connect to WebSocket at: ${socketUrl}`);
+  const setupWebSocket = async userId => {
+    if (userId) {
+      const socketUrl = `ws://104.248.23.245/ws/location/${userId}/`;
+      console.log(`Attempting to connect to WebSocket at: ${socketUrl}`);
 
-    const newSocket = new WebSocket(socketUrl);
+      const newSocket = new WebSocket(socketUrl);
 
-    // WebSocket open event handler
-    newSocket.onopen = () => {
-      console.log('WebSocket connection established successfully');
-      console.log('Current socket state:', newSocket ? newSocket.readyState : 'No socket'); // Debug log
-      setSocketReady(true); 
-      console.log('Connection details:', {
-        url: socketUrl,
-        userId,
-        time: new Date().toISOString(),
-      });
-// Mark WebSocket as ready when open
-    };
-
-    // WebSocket message event handler
-    newSocket.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        console.log('Received message:', message);
-        console.log('Message details:', {
-          message,
+      // WebSocket open event handler
+      newSocket.onopen = () => {
+        console.log('WebSocket connection established successfully');
+        console.log(
+          'Current socket state:',
+          newSocket ? newSocket.readyState : 'No socket',
+        ); // Debug log
+        setSocketReady(true);
+        console.log('Connection details:', {
+          url: socketUrl,
+          userId,
           time: new Date().toISOString(),
         });
-      } catch (err) {
-        console.error('Error parsing WebSocket message:', err);
-      }
-    };
+        // Mark WebSocket as ready when open
+      };
 
-    // WebSocket error event handler
-    newSocket.onerror = (error) => {
-      console.error('WebSocket encountered an error:', error);
-      console.error('Error details:', {
-        error,
-        time: new Date().toISOString(),
-      });
-    };
+      // WebSocket message event handler
+      newSocket.onmessage = event => {
+        try {
+          const message = JSON.parse(event.data);
+          console.log('Received message:', message);
+          console.log('Message details:', {
+            message,
+            time: new Date().toISOString(),
+          });
+        } catch (err) {
+          console.error('Error parsing WebSocket message:', err);
+        }
+      };
 
-    // WebSocket close event handler
-    newSocket.onclose = (event) => {
-      if (event.wasClean) {
-        console.log('WebSocket connection closed cleanly');
-        console.log('Closure details:', {
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean,
+      // WebSocket error event handler
+      newSocket.onerror = error => {
+        console.error('WebSocket encountered an error:', error);
+        console.error('Error details:', {
+          error,
           time: new Date().toISOString(),
         });
-      } else {
-        console.warn('WebSocket connection closed unexpectedly');
-        console.warn('Unexpected closure details:', {
-          code: event.code,
-          reason: event.reason,
-          wasClean: event.wasClean,
-          time: new Date().toISOString(),
-        });
-      }
-      setSocketReady(false); // Reset readiness on close
-    };
+      };
 
-    setSocket(newSocket); // Save WebSocket reference for future use
-    console.log('WebSocket instance created and assigned.');
-  } else {
-    console.log('No user ID available to set up WebSocket connection');
-  }
-};
+      // WebSocket close event handler
+      newSocket.onclose = event => {
+        if (event.wasClean) {
+          console.log('WebSocket connection closed cleanly');
+          console.log('Closure details:', {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean,
+            time: new Date().toISOString(),
+          });
+        } else {
+          console.warn('WebSocket connection closed unexpectedly');
+          console.warn('Unexpected closure details:', {
+            code: event.code,
+            reason: event.reason,
+            wasClean: event.wasClean,
+            time: new Date().toISOString(),
+          });
+        }
+        setSocketReady(false); // Reset readiness on close
+      };
 
-// Main React component
+      setSocket(newSocket); // Save WebSocket reference for future use
+      console.log('WebSocket instance created and assigned.');
+    } else {
+      console.log('No user ID available to set up WebSocket connection');
+    }
+  };
 
+  // Main React component
 
   // Fetch userId from token and set up WebSocket
   useEffect(() => {
@@ -114,7 +124,9 @@ const DashboardScreen = () => {
           console.log('User ID fetched successfully:', userId);
           setUserId(userId); // Set userId in state
         } else {
-          console.error('User ID not found. Unable to set up WebSocket connection.');
+          console.error(
+            'User ID not found. Unable to set up WebSocket connection.',
+          );
         }
       } catch (error) {
         console.error('Error fetching user ID:', error);
@@ -135,16 +147,19 @@ const DashboardScreen = () => {
         console.log('WebSocket connection closed during cleanup');
       }
     };
-  }, [userId, socket]);  // Re-run effect when userId or socket changes
+  }, [userId, socket]); // Re-run effect when userId or socket changes
 
   // Function to send location data via WebSocket
   const sendLocationToWebSocket = (latitude, longitude) => {
-    console.log('Trying to send location data:', { latitude, longitude });
-    console.log('Current socket state:', socket ? socket.readyState : 'No socket'); // Debug log
+    console.log('Trying to send location data:', {latitude, longitude});
+    console.log(
+      'Current socket state:',
+      socket ? socket.readyState : 'No socket',
+    ); // Debug log
 
     if (socket && socket.readyState === WebSocket.OPEN) {
       console.log('WebSocket is ready. Sending location data...');
-      const locationData = { latitude, longitude };
+      const locationData = {latitude, longitude};
 
       try {
         socket.send(JSON.stringify(locationData)); // Send data
@@ -158,55 +173,65 @@ const DashboardScreen = () => {
     }
   };
 
-
   // Watch position and send location updates
   useEffect(() => {
     const watchId = Geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
+      position => {
+        const {latitude, longitude} = position.coords;
         console.log('Captured Location:', latitude, longitude);
 
-        setLocation({ latitude, longitude });
-        sendLocationToWebSocket(latitude, longitude);  // Send location to WebSocket
-        fetchAvailableVets(latitude, longitude);  // Fetch nearby vets
+        setLocation({latitude, longitude});
+        sendLocationToWebSocket(latitude, longitude); // Send location to WebSocket
+        fetchAvailableVets(latitude, longitude); // Fetch nearby vets
       },
-      (error) => {
+      error => {
         console.error('Location Error:', error);
         Alert.alert('Location Error', error.message);
       },
       {
         enableHighAccuracy: true,
-        distanceFilter: 1,  // Update the position every 1 meter
-        interval: 1000,  // Get updates every second
-        fastestInterval: 500,  // Fastest possible update interval (in milliseconds)
-      }
+        distanceFilter: 1, // Update the position every 1 meter
+        interval: 1000, // Get updates every second
+        fastestInterval: 500, // Fastest possible update interval (in milliseconds)
+      },
     );
 
     return () => {
-      Geolocation.clearWatch(watchId);  // Clear location watch on unmount
+      Geolocation.clearWatch(watchId); // Clear location watch on unmount
     };
-  }, []);  // Empty array ensures this effect only runs once when component mounts
+  }, []); // Empty array ensures this effect only runs once when component mounts
 
   const fetchAvailableVets = async (latitude, longitude) => {
     try {
-      console.log('Inside fetchAvailableVets - Latitude:', latitude, 'Longitude:', longitude);
+      console.log(
+        'Inside fetchAvailableVets - Latitude:',
+        latitude,
+        'Longitude:',
+        longitude,
+      );
 
       const token = await AsyncStorage.getItem('access_token');
-      const response = await fetch('http://104.248.23.245/api/profiles/vets/available/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+      const response = await fetch(
+        'http://104.248.23.245/api/profiles/vets/available/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({latitude, longitude}),
         },
-        body: JSON.stringify({ latitude, longitude }),
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
         setVets(data);
       } else {
         const errorData = await response.json();
-        console.error('Error', errorData.detail || 'Unable to fetch available vets.');
+        console.error(
+          'Error',
+          errorData.detail || 'Unable to fetch available vets.',
+        );
       }
     } catch (error) {
       console.error('Error fetching vets:', error);
@@ -221,18 +246,24 @@ const DashboardScreen = () => {
 
     try {
       const token = await AsyncStorage.getItem('access_token');
-      const response = await fetch('http://104.248.23.245/api/vet_requests/request/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+      const response = await fetch(
+        'http://104.248.23.245/api/vet_requests/request/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({location, description}),
         },
-        body: JSON.stringify({ location, description }),
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
-        Alert.alert('Request sent', `Vet request successful. Vet ID: ${data.vet_id}`);
+        Alert.alert(
+          'Request sent',
+          `Vet request successful. Vet ID: ${data.vet_id}`,
+        );
         setModalVisible(false); // Close modal on success
         setDescription(''); // Reset description
       } else {
@@ -254,15 +285,14 @@ const DashboardScreen = () => {
             longitude: location.longitude,
             latitudeDelta: 0.1,
             longitudeDelta: 0.1,
-          }}
-        >
+          }}>
           <Marker coordinate={location} title="Your Location" />
-          {vets.map((vet) => (
+          {vets.map(vet => (
             <Marker
               key={vet.id}
-              coordinate={{ latitude: vet.latitude, longitude: vet.longitude }}
+              coordinate={{latitude: vet.latitude, longitude: vet.longitude}}
               image={CustomMarker}
-              style={{ width: 60, height: 60 }}
+              style={{width: 60, height: 60}}
             />
           ))}
         </MapView>
@@ -282,8 +312,7 @@ const DashboardScreen = () => {
         animationType="slide"
         transparent={true}
         visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
+        onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <TextInput

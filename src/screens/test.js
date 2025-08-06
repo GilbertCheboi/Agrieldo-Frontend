@@ -47,9 +47,22 @@ const DashboardScreen = () => {
 
   const fetchAvailableVets = async () => {
     try {
-      const response = await fetch('http://104.248.23.245:8000/api/profiles/vets/'); // Replace with your API URL
-      const data = await response.json();
-      setVets(data);
+      const response = await fetch('http://192.168.100.4:8000/api/profiles/vets/');
+
+      console.log('Response status:', response.status); // Log status code
+
+      const contentType = response.headers.get('content-type');
+      const isJson = contentType && contentType.includes('application/json');
+
+      if (response.ok && isJson) {
+        const data = await response.json();
+        console.log('Fetched vets data:', data); // Log JSON response
+        setVets(data);
+      } else {
+        const text = await response.text(); // In case it's HTML or error
+        console.error('Non-JSON response or error:', text);
+      }
+
     } catch (error) {
       console.error('Error fetching vets:', error);
     }

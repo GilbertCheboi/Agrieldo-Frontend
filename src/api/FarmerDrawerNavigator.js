@@ -1,8 +1,17 @@
 // File: src/navigation/DrawerNavigator.js
 
 import React from 'react';
-import { createDrawerNavigator, DrawerItem } from '@react-navigation/drawer';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import {createDrawerNavigator, DrawerItem} from '@react-navigation/drawer';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {CommonActions, useNavigation} from '@react-navigation/native';
+
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 import FarmerTabNavigator from './FarmerTabNavigator'; // Import your FarmerTabNavigator
 import AccountScreen from '../screens/AccountScreen';
 import BillingScreen from '../screens/BillingScreen';
@@ -11,11 +20,10 @@ import StoreScreen from '../screens/StoreScreen';
 import ChatGPT from '../screens/ChatGPT';
 import VetRequestListScreen from '../screens/VetRequestsListScreen';
 import AllAnimalsScreen from '../screens/AllAnimalsScreen';
-import { createStackNavigator } from '@react-navigation/stack';
+import {createStackNavigator} from '@react-navigation/stack';
 import AnimalDetailsScreen from '../screens/AnimalDetailsScreen';
 import MilkDetailScreen from '../screens/MilkDetailScreen';
-
-
+import FarmDashboard from '../screens/FarmDashboard'; // ✅ Import this
 
 // Create a Stack Navigator for "My Farm" section
 const Stack = createStackNavigator();
@@ -24,7 +32,11 @@ const Stack = createStackNavigator();
 const FarmerStackNavigator = () => (
   <Stack.Navigator>
     {/* FarmerTabNavigator is the first screen in the stack */}
-    <Stack.Screen name="Home" component={FarmerTabNavigator} options={{ headerShown: false }} />
+    <Stack.Screen
+      name="Home"
+      component={FarmerTabNavigator}
+      options={{headerShown: false}}
+    />
     <Stack.Screen name="My Farm" component={AccountScreen} />
     <Stack.Screen name="Billing" component={BillingScreen} />
     <Stack.Screen name="Feed Store" component={AllAnimalsScreen} />
@@ -32,45 +44,106 @@ const FarmerStackNavigator = () => (
     <Stack.Screen name="Store" component={StoreScreen} />
     <Stack.Screen name="Education" component={ChatGPT} />
     <Stack.Screen name="VetRequests" component={VetRequestListScreen} />
-    <Stack.Screen name="AnimalDetails" component={AnimalDetailsScreen} options={{ headerShown: false }} />
-    <Stack.Screen name="MilkDetail" component={MilkDetailScreen} options={{ headerShown: false }} />
-
-
+    <Stack.Screen
+      name="AnimalDetails"
+      component={AnimalDetailsScreen}
+      options={{headerShown: false}}
+    />
+    <Stack.Screen
+      name="MilkDetail"
+      component={MilkDetailScreen}
+      options={{headerShown: false}}
+    />
+    {/* ✅ Add this line to fix the issue */}
+    <Stack.Screen
+      name="FarmDashboard"
+      component={FarmDashboard}
+      options={{title: 'Farm Dashboard'}}
+    />
   </Stack.Navigator>
 );
 
 const Drawer = createDrawerNavigator();
 
-const CustomDrawerContent = (props) => (
-  <ScrollView contentContainerStyle={styles.drawerContent}>
-    {/* Agrieldo Section */}
-    <View style={styles.section}>
-      <DrawerItem
-        label="Agrieldo"
-        onPress={() => props.navigation.navigate('Home')}
-        style={[styles.drawerItem, styles.agrieldoItem]}
-      />
-    </View>
+const CustomDrawerContent = props => {
+  const navigation = props.navigation;
 
-    {/* Main Navigation Section */}
-    <View style={styles.section}>
-      <DrawerItem label="My Farm" onPress={() => props.navigation.navigate('My Farm')} style={styles.drawerItem} />
-      <DrawerItem label="Billing and Invoices" onPress={() => props.navigation.navigate('Billing')} style={styles.drawerItem} />
-      <DrawerItem label="Feed Store" onPress={() => props.navigation.navigate('Feed Store')} style={styles.drawerItem} />
-      <DrawerItem label="Market/Auction" onPress={() => props.navigation.navigate('Market')} style={styles.drawerItem} />
-      <DrawerItem label="Drug Store" onPress={() => props.navigation.navigate('Store')} style={styles.drawerItem} />
-      <DrawerItem label="Agrieldo (AI)" onPress={() => props.navigation.navigate('Education')} style={styles.drawerItem} />
-      <DrawerItem label="My Vet Requests" onPress={() => props.navigation.navigate('VetRequests')} style={styles.drawerItem} />
-    </View>
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('access_token');
+      await AsyncStorage.removeItem('refresh_token');
 
-    {/* Logout Section */}
-    <View style={styles.logoutContainer}>
-      <TouchableOpacity style={styles.logoutButton} onPress={() => alert('Logout')}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-    </View>
-  </ScrollView>
-);
+      // Redirect to Home (or Login if you prefer)
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{name: 'Login'}], // Change to 'Login' if you have a Login screen
+        }),
+      );
+    } catch (error) {
+      console.error('Logout Error:', error);
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.drawerContent}>
+      {/* Agrieldo Section */}
+      <View style={styles.section}>
+        <DrawerItem
+          label="Agrieldo"
+          onPress={() => navigation.navigate('Home')}
+          style={[styles.drawerItem, styles.agrieldoItem]}
+        />
+      </View>
+
+      {/* Main Navigation Section */}
+      <View style={styles.section}>
+        <DrawerItem
+          label="My Farm"
+          onPress={() => navigation.navigate('My Farm')}
+          style={styles.drawerItem}
+        />
+        <DrawerItem
+          label="Billing and Invoices"
+          onPress={() => navigation.navigate('Billing')}
+          style={styles.drawerItem}
+        />
+        <DrawerItem
+          label="Feed Store"
+          onPress={() => navigation.navigate('Feed Store')}
+          style={styles.drawerItem}
+        />
+        <DrawerItem
+          label="Market/Auction"
+          onPress={() => navigation.navigate('Market')}
+          style={styles.drawerItem}
+        />
+        <DrawerItem
+          label="Drug Store"
+          onPress={() => navigation.navigate('Store')}
+          style={styles.drawerItem}
+        />
+        <DrawerItem
+          label="Agrieldo (AI)"
+          onPress={() => navigation.navigate('Education')}
+          style={styles.drawerItem}
+        />
+        <DrawerItem
+          label="My Vet Requests"
+          onPress={() => navigation.navigate('VetRequests')}
+          style={styles.drawerItem}
+        />
+      </View>
+
+      {/* Logout Section */}
+      <View style={styles.logoutContainer}>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+};
 
 const FarmerDrawerNavigator = () => (
   <Drawer.Navigator
@@ -92,8 +165,7 @@ const FarmerDrawerNavigator = () => (
         borderRadius: 10,
       },
     }}
-    drawerContent={(props) => <CustomDrawerContent {...props} />}
-  >
+    drawerContent={props => <CustomDrawerContent {...props} />}>
     {/* Home Screen now goes to FarmerStackNavigator */}
     <Drawer.Screen
       name="Home"
@@ -109,15 +181,43 @@ const FarmerDrawerNavigator = () => (
         },
       }}
     />
-    
+
     {/* Other screens in the Drawer */}
-    <Drawer.Screen name="My Farm" component={AccountScreen} options={{ title: 'My Farm' }} />
-    <Drawer.Screen name="Billing" component={BillingScreen} options={{ title: 'Billing and Invoices' }} />
-    <Drawer.Screen name="Feed Store" component={AllAnimalsScreen} options={{ title: 'Feed Store' }} />
-    <Drawer.Screen name="Market" component={MarketScreen} options={{ title: 'Market/Auction' }} />
-    <Drawer.Screen name="Store" component={StoreScreen} options={{ title: 'Drug Store' }} />
-    <Drawer.Screen name="Education" component={ChatGPT} options={{ title: 'Agrieldo (AI)' }} />
-    <Drawer.Screen name="VetRequests" component={VetRequestListScreen} options={{ title: 'My Vet Requests' }} />
+    <Drawer.Screen
+      name="My Farm"
+      component={AccountScreen}
+      options={{title: 'My Farm'}}
+    />
+    <Drawer.Screen
+      name="Billing"
+      component={BillingScreen}
+      options={{title: 'Billing and Invoices'}}
+    />
+    <Drawer.Screen
+      name="Feed Store"
+      component={AllAnimalsScreen}
+      options={{title: 'Feed Store'}}
+    />
+    <Drawer.Screen
+      name="Market"
+      component={MarketScreen}
+      options={{title: 'Market/Auction'}}
+    />
+    <Drawer.Screen
+      name="Store"
+      component={StoreScreen}
+      options={{title: 'Drug Store'}}
+    />
+    <Drawer.Screen
+      name="Education"
+      component={ChatGPT}
+      options={{title: 'Agrieldo (AI)'}}
+    />
+    <Drawer.Screen
+      name="VetRequests"
+      component={VetRequestListScreen}
+      options={{title: 'My Vet Requests'}}
+    />
   </Drawer.Navigator>
 );
 

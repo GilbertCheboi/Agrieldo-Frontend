@@ -1,10 +1,18 @@
 // File: src/screens/LoginScreen.js
 
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import React, {useState} from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
+import {CommonActions} from '@react-navigation/native';
 
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
@@ -18,23 +26,55 @@ const LoginScreen = () => {
     }
 
     try {
-      const response = await axios.post('http://104.248.23.245/api/accounts/api/token/', {
-        username,
-        password,
-      });
+      const response = await axios.post(
+        'http://192.168.100.4:8000/api/accounts/api/token/',
+        {
+          username,
+          password,
+        },
+      );
 
-      const { access, refresh, user_type } = response.data;
+      const {access, refresh, user_type} = response.data;
 
       // Store tokens and user type in AsyncStorage
       await AsyncStorage.setItem('access_token', access);
       await AsyncStorage.setItem('refresh_token', refresh);
       await AsyncStorage.setItem('user_type', user_type.toString());
 
-      // Navigate based on user type
+      //      // Navigate based on user type
+      //      if (user_type.toString() === 'vet') {
+      //        navigation.navigate('VetDrawerNavigator');
+      //      } else {
+      //        navigation.navigate('FarmerDrawerNavigator');
+      //         { name: 'My Farm' },
+      //      }
+
       if (user_type.toString() === 'vet') {
         navigation.navigate('VetDrawerNavigator');
       } else {
-        navigation.navigate('FarmerDrawerNavigator');
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'FarmerDrawerNavigator',
+                state: {
+                  index: 1, // Index of "My Farm" inside FarmerStackNavigator
+                  routes: [
+                    {
+                      name: 'Home', // This points to FarmerStackNavigator
+                      state: {
+                        routes: [
+                          {name: 'My Farm'}, // Inside FarmerStackNavigator
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        );
       }
     } catch (error) {
       console.error('Login failed:', error);
@@ -65,8 +105,7 @@ const LoginScreen = () => {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.signupButton}
-        onPress={() => navigation.navigate('Signup')}
-      >
+        onPress={() => navigation.navigate('Signup')}>
         <Text style={styles.signupText}>Don't have an account? Sign Up</Text>
       </TouchableOpacity>
     </View>

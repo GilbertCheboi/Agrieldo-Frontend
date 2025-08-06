@@ -1,6 +1,34 @@
-pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
-plugins { id("com.facebook.react.settings") }
-extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
+// pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
+// plugins { id("com.facebook.react.settings") }
+// extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
+// rootProject.name = 'FarmManagementApp'
+// include ':app'
+// includeBuild('../node_modules/@react-native/gradle-plugin')
+// includeBuild(":react-native-codegen")
+// project(":react-native-codegen").projectDir = file("$rootDir/node_modules/react-native-codegen")
+
+
+pluginManagement {
+    // React Native’s Gradle plugin for autolinking
+    includeBuild("../node_modules/@react-native/gradle-plugin")
+}
+plugins {
+    id("com.facebook.react.settings")
+}
+extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    ex.autolinkLibrariesFromCommand()
+}
+
 rootProject.name = 'FarmManagementApp'
+
+// Your app module
 include ':app'
+
+// Include the RN Gradle plugin for autolinking
 includeBuild('../node_modules/@react-native/gradle-plugin')
+
+// Include React-Native Codegen as a composite build
+// so that codegen generates all the ViewManagerWithGeneratedInterface classes
+includeBuild('../node_modules/react-native-codegen') {
+    name = 'react-native-codegen'
+}
