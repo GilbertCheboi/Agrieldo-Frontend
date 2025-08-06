@@ -1,7 +1,7 @@
 // File: src/screens/VetActivityHistoryScreen.js
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, FlatList, StyleSheet} from 'react-native';
 import axios from 'axios';
 
 const VetActivityHistoryScreen = () => {
@@ -9,12 +9,13 @@ const VetActivityHistoryScreen = () => {
 
   useEffect(() => {
     // Fetch the vet's activity history from the backend
-    axios.get('http://192.168.100.4:8000/api/vet/activities')
+    axios
+      .get('https://api.agrieldo.com/api/vet/activities')
       .then(response => setActivities(response.data))
       .catch(error => console.error(error));
   }, []);
 
-  const renderActivity = ({ item }) => (
+  const renderActivity = ({item}) => (
     <View style={styles.activityItem}>
       <Text style={styles.activityText}>Date: {item.date}</Text>
       <Text style={styles.activityText}>Animal: {item.animal}</Text>
@@ -26,7 +27,7 @@ const VetActivityHistoryScreen = () => {
     <FlatList
       data={activities}
       renderItem={renderActivity}
-      keyExtractor={(item) => item.id.toString()}
+      keyExtractor={item => item.id.toString()}
       style={styles.container}
     />
   );
@@ -45,7 +46,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     shadowColor: '#000',
     shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowRadius: 5,
   },
   activityText: {

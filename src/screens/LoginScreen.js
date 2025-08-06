@@ -13,6 +13,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 import {CommonActions} from '@react-navigation/native';
+import {Button} from 'react-native-paper';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const LoginScreen = () => {
   const [username, setUsername] = useState('');
@@ -27,7 +29,7 @@ const LoginScreen = () => {
 
     try {
       const response = await axios.post(
-        'http://192.168.100.4:8000/api/accounts/api/token/',
+        'https://api.agrieldo.com/api/accounts/api/token/',
         {
           username,
           password,
@@ -84,6 +86,13 @@ const LoginScreen = () => {
 
   return (
     <View style={styles.container}>
+      {/* Back Arrow + Text */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}>
+        <Ionicons name="arrow-back" size={24} color="#ffa500" />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>Login</Text>
       <TextInput
         style={styles.input}
@@ -118,6 +127,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 16,
     backgroundColor: '#f5f5f5',
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  backText: {
+    fontSize: 18,
+    marginLeft: 8,
+    color: '#ffa500',
+    fontWeight: '500',
   },
   title: {
     fontSize: 26,

@@ -24,7 +24,7 @@ const FarmDashboard = ({route, navigation}) => {
     try {
       const token = await AsyncStorage.getItem('access_token');
       const response = await axios.get(
-        `http://192.168.100.4:8000/api/farms/get_farms/${farmId}/`,
+        `https://api.agrieldo.com/api/farms/get_farms/${farmId}/`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

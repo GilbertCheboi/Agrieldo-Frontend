@@ -184,3 +184,7 @@ export const addProductionData = async (animalId, data) => {
 export const updateProductionData = async (id, data) => {
   return API.put(`animals/production-data/${id}/edit`, data, getAuthHeaders());
 };
+
+export const addNewFarm = async data => {
+  return API.post('farms/farms/', data, getAuthHeaders());
+};

@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Feather';
 import styles from '../assets/styles/AccountScreenStyles.js';
 import EditModal from './modals/EditModal'; // Make sure EditModal.js is in the same folder
+import AddFarmModal from './modals/AddFarmModal.js';
 
 const AccountScreen = () => {
   const navigation = useNavigation();
@@ -24,12 +25,13 @@ const AccountScreen = () => {
   const [activeSettingsIndex, setActiveSettingsIndex] = useState(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedFarm, setSelectedFarm] = useState(null);
+  const [addModalVisible, setAddModalVisible] = useState(false);
 
   const fetchFarms = async () => {
     try {
       const token = await AsyncStorage.getItem('access_token');
       const response = await axios.get(
-        'http://192.168.100.4:8000/api/farms/get_farms',
+        'https://api.agrieldo.com/api/farms/get_farms',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -48,7 +50,7 @@ const AccountScreen = () => {
     try {
       const token = await AsyncStorage.getItem('access_token');
       await axios.patch(
-        `http://192.168.100.4:8000/api/farms/${updatedFarm.id}/`,
+        `https://api.agrieldo.com/api/farms/${updatedFarm.id}/`,
         updatedFarm,
         {
           headers: {
@@ -164,6 +166,12 @@ const AccountScreen = () => {
           </TouchableOpacity>
         ))}
       </ScrollView>
+      {/* Floating + Button */}
+      <TouchableOpacity
+        style={localStyles.fab}
+        onPress={() => setAddModalVisible(true)}>
+        <Icon name="plus" size={28} color="#fff" />
+      </TouchableOpacity>
 
       {/* Edit Modal */}
       <EditModal
@@ -171,6 +179,23 @@ const AccountScreen = () => {
         farm={selectedFarm}
         onClose={() => setEditModalVisible(false)}
         onSave={updateFarm}
+      />
+      <AddFarmModal
+        visible={addModalVisible}
+        onClose={() => setAddModalVisible(false)}
+        onSave={async newFarm => {
+          try {
+            const token = await AsyncStorage.getItem('access_token');
+            await axios.post('https://api.agrieldo.com/api/farms/', newFarm, {
+              headers: {Authorization: `Bearer ${token}`},
+            });
+            setAddModalVisible(false);
+            fetchFarms();
+          } catch (error) {
+            console.error('Error adding farm:', error);
+            alert('Failed to add farm');
+          }
+        }}
       />
     </>
   );
@@ -218,5 +243,21 @@ const localStyles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     color: '#155724',
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#ffa500',
+    width: 40,
+    height: 40,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5, // Android shadow
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
   },
 });

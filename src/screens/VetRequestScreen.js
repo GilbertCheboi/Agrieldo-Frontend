@@ -1,7 +1,7 @@
 // File: src/screens/VetRequestScreen.js
 
-import React, { useState, useEffect } from 'react';
-import { View, Text, Button, FlatList, StyleSheet } from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {View, Text, Button, FlatList, StyleSheet} from 'react-native';
 import axios from 'axios';
 
 const VetRequestScreen = () => {
@@ -9,22 +9,23 @@ const VetRequestScreen = () => {
 
   useEffect(() => {
     // Fetch the requests from the backend
-    axios.get('http://192.168.100.4:8000/api/vet/requests')
+    axios
+      .get('https://api.agrieldo.com/api/vet/requests')
       .then(response => setRequests(response.data))
       .catch(error => console.error(error));
   }, []);
 
-  const handleAccept = (requestId) => {
+  const handleAccept = requestId => {
     // Logic to accept a request
     console.log(`Accepted request ${requestId}`);
   };
 
-  const handleDecline = (requestId) => {
+  const handleDecline = requestId => {
     // Logic to decline a request
     console.log(`Declined request ${requestId}`);
   };
 
-  const renderRequest = ({ item }) => (
+  const renderRequest = ({item}) => (
     <View style={styles.requestItem}>
       <Text style={styles.requestText}>Request from: {item.farmerName}</Text>
       <Text style={styles.requestText}>Animal: {item.animal}</Text>
@@ -40,7 +41,7 @@ const VetRequestScreen = () => {
     <FlatList
       data={requests}
       renderItem={renderRequest}
-      keyExtractor={(item) => item.id.toString()}
+      keyExtractor={item => item.id.toString()}
       style={styles.container}
     />
   );
@@ -59,7 +60,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     shadowColor: '#000',
     shadowOpacity: 0.2,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowRadius: 5,
   },
   requestText: {
