@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons'; // ✅ for green ticks
 
 const PremiumScreen = () => {
   const packages = [
@@ -7,7 +14,8 @@ const PremiumScreen = () => {
       id: '1',
       name: 'Silver Package',
       price: '500 KSH/month',
-      description: 'Access to detailed production reports and animal health alerts.',
+      description:
+        'Access to detailed production reports and animal health alerts.',
       features: [
         'Detailed Production Reports',
         'Animal Health Alerts',
@@ -40,27 +48,40 @@ const PremiumScreen = () => {
     },
   ];
 
-  const handlePurchase = (packageName) => {
+  const handlePurchase = packageName => {
     alert(`You selected the ${packageName}. Proceed to payment.`);
-    // Add payment functionality here
+    // Add payment integration here
   };
 
-  const renderPackageCard = (pkg) => (
+  const renderPackageCard = pkg => (
     <View key={pkg.id} style={styles.packageCard}>
       <Text style={styles.packageName}>{pkg.name}</Text>
-      <Text style={styles.packagePrice}>{pkg.price}</Text>
+
+      {/* Price with badge */}
+      <View style={styles.priceBadge}>
+        <Text style={styles.packagePrice}>{pkg.price}</Text>
+      </View>
       <Text style={styles.packageDescription}>{pkg.description}</Text>
+
+      {/* Features list with green ticks */}
       <View style={styles.featuresList}>
         {pkg.features.map((feature, index) => (
-          <Text key={index} style={styles.featureItem}>
-            - {feature}
-          </Text>
+          <View key={index} style={styles.featureItem}>
+            <Icon
+              name="checkmark-circle"
+              size={20}
+              color="green"
+              style={styles.featureIcon}
+            />
+            <Text style={styles.featureText}>{feature}</Text>
+          </View>
         ))}
       </View>
+
+      {/* Purchase button */}
       <TouchableOpacity
         style={styles.purchaseButton}
-        onPress={() => handlePurchase(pkg.name)}
-      >
+        onPress={() => handlePurchase(pkg.name)}>
         <Text style={styles.purchaseButtonText}>Purchase</Text>
       </TouchableOpacity>
     </View>
@@ -72,7 +93,7 @@ const PremiumScreen = () => {
       <Text style={styles.subtitle}>
         Unlock exclusive features to improve your farming experience.
       </Text>
-      {packages.map((pkg) => renderPackageCard(pkg))}
+      {packages.map(pkg => renderPackageCard(pkg))}
     </ScrollView>
   );
 };
@@ -92,54 +113,69 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     color: '#555',
-    marginBottom: 16,
+    marginBottom: 20,
     textAlign: 'center',
   },
   packageCard: {
     width: '90%',
-    padding: 16,
+    padding: 18,
     backgroundColor: '#fff',
-    borderRadius: 10,
-    marginVertical: 10,
+    borderRadius: 15,
+    marginVertical: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#eee',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
   },
   packageName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#ffa500',
     marginBottom: 8,
     textAlign: 'center',
   },
-  packagePrice: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-    textAlign: 'center',
+  priceBadge: {
+    alignSelf: 'center',
+    backgroundColor: '#000', // light orange background
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 20,
     marginBottom: 8,
   },
+
+  packagePrice: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#02f73fec',
+  },
+
   packageDescription: {
     fontSize: 14,
-    color: '#555',
+    color: '#666',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   featuresList: {
-    marginBottom: 16,
+    marginBottom: 18,
   },
   featureItem: {
-    fontSize: 14,
-    color: '#555',
-    marginVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  featureIcon: {
+    marginRight: 8,
+  },
+  featureText: {
+    fontSize: 15,
+    color: '#444',
   },
   purchaseButton: {
     backgroundColor: '#ffa500',
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 12,
+    borderRadius: 25,
     alignItems: 'center',
   },
   purchaseButtonText: {

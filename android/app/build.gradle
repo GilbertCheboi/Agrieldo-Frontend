@@ -34,8 +34,9 @@ android {
         applicationId "com.agrieldo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 20
+        versionName "1.0.20"
+        ndk.debugSymbolLevel = "FULL"
     }
 
     signingConfigs {
@@ -47,7 +48,7 @@ android {
         }
 
         release {
-            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+            if (project.hasProperty("MYAPP_UPLOAD_STORE_FILE")) {
                 storeFile file(MYAPP_UPLOAD_STORE_FILE)
                 storePassword MYAPP_UPLOAD_STORE_PASSWORD
                 keyAlias MYAPP_UPLOAD_KEY_ALIAS
@@ -60,9 +61,15 @@ android {
         debug {
             signingConfig signingConfigs.debug
         }
+        // release {
+        //     signingConfig signingConfigs.release // Use your own keystore in production
+        //     minifyEnabled enableProguardInReleaseBuilds
+        //     proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        // }
         release {
-            signingConfig signingConfigs.release // Use your own keystore in production
-            minifyEnabled enableProguardInReleaseBuilds
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }

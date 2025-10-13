@@ -1,301 +1,413 @@
-import React, { useEffect, useState } from 'react';
-import { View, Button, Alert, StyleSheet, Dimensions, Modal, TextInput } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
-import Geolocation from '@react-native-community/geolocation';
-import CustomMarker from '../assets/medical.png'; // Adjust the path to your image
+import React, {useState, useEffect, useRef, useMemo} from 'react';
+import {
+  View,
+  Text,
+  Button,
+  Alert,
+  StyleSheet,
+  Platform,
+  ActivityIndicator,
+  PermissionsAndroid,
+  FlatList,
+  TouchableOpacity,
+} from 'react-native';
+
+import GetLocation from 'react-native-get-location';
+import MapView, {Marker, Circle, PROVIDER_GOOGLE} from 'react-native-maps';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import jwtDecode from 'jwt-decode';
+import RequestVetModal from './modals/RequestVetModal';
+import {requestVet} from '../utils/api';
+// -------- Config --------
+const RADIUS_KM = 15;
+const RADIUS_METERS = RADIUS_KM * 1000;
 
-const DashboardScreen = () => {
+// Haversine distance (km)
+const distanceKm = (lat1, lon1, lat2, lon2) => {
+  const toRad = d => (d * Math.PI) / 180;
+  const R = 6371; // km
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// Helper: parse coordinate safely
+const parseCoord = v => {
+  if (v === undefined || v === null) return NaN;
+  const num = Number(typeof v === 'string' ? v.trim() : v);
+  return Number.isFinite(num) ? num : NaN;
+};
+
+export default function VetRequestsOverviewScreen() {
+  const mapRef = useRef(null);
+
   const [location, setLocation] = useState(null);
-  const [vets, setVets] = useState([]);
+  const [region, setRegion] = useState(null);
+  const [vetsRaw, setVetsRaw] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const [selectedVet, setSelectedVet] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
-  const [description, setDescription] = useState('');
-  const [userId, setUserId] = useState(null);  // Store user ID for WebSocket connection
-  const [socket, setSocket] = useState(null); // WebSocket connection
-  const [socketReady, setSocketReady] = useState(false); // Track WebSocket readiness
 
-  // Get user ID from token stored in AsyncStorage
-  const getUserIdFromToken = async () => {
+  const handleRequestVet = vet => {
+    setSelectedVet(vet);
+    setModalVisible(true);
+  };
+
+  const handleSubmitRequest = async (vet, {message, signs, animalImage}) => {
     try {
-      const token = await AsyncStorage.getItem('access_token');
-      if (token) {
-        const decoded = jwtDecode(token);
-        return decoded.user_id;
-      }
-    } catch (error) {
-      console.error('Error retrieving token or decoding:', error);
-    }
-    return null;
-  };
-
-  // Set up WebSocket connection using the user ID
-  const setupWebSocket = async (userId) => {
-    if (userId) {
-      const socketUrl = `ws://104.248.23.245:8000/ws/location/${userId}/`;
-      console.log(`Attempting to connect to WebSocket at ${socketUrl}`);
-  
-      const newSocket = new WebSocket(socketUrl);
-  
-      // WebSocket open event handler
-      newSocket.onopen = () => {
-        console.log('WebSocket connected successfully');
-        setSocketReady(true); // Mark WebSocket as ready when open
-      };
-  
-      // WebSocket message event handler
-      newSocket.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        console.log('Received message:', message);
-      };
-  
-      // WebSocket error event handler
-      newSocket.onerror = (error) => {
-        console.error('WebSocket error:', error);  // Log any errors with the WebSocket
-      };
-  
-      // WebSocket close event handler
-      newSocket.onclose = (event) => {
-        if (event.wasClean) {
-          console.log('WebSocket closed cleanly');
-        } else {
-          console.warn('WebSocket closed unexpectedly');
-        }
-        setSocketReady(false); // Reset readiness on close
-      };
-  
-      setSocket(newSocket);  // Save WebSocket reference for future use
-    } else {
-      console.log('No user ID available to set up WebSocket connection');
+      await requestVet(vet.id, {message, signs, animalImage});
+      Alert.alert('Success', `Your request to ${vet.name} has been sent.`);
+      setModalVisible(false);
+    } catch (err) {
+      Alert.alert(
+        'Error',
+        err.response?.data?.detail || 'Failed to submit vet request.',
+      );
     }
   };
-  
 
-  
-    // Fetch userId from token and set up WebSocket
-    useEffect(() => {
-      const initialize = async () => {
-        try {
-          const userId = await getUserIdFromToken();  // Assuming getUserIdFromToken is defined
-          if (userId) {
-            console.log('User ID fetched successfully:', userId);
-            setUserId(userId);  // Set userId in state
-            setupWebSocket(userId);  // Set up WebSocket connection only if userId is available
-          } else {
-            console.error('User ID not found. Unable to set up WebSocket connection.');
-          }
-        } catch (error) {
-          console.error('Error fetching user ID:', error);
-        }
-      };
-  
-      initialize();
-  
-      // Cleanup function to close WebSocket connection when component unmounts or userId changes
-      return () => {
-        if (socket) {
-          socket.close();
-          console.log('WebSocket connection closed during cleanup');
-        }
-      };
-    }, [userId, socket]);  // Re-run effect when userId or socket changes
-  
-    // Function to send location data via WebSocket
-    const sendLocationToWebSocket = (latitude, longitude) => {
-      console.log('Trying to send location data:', { latitude, longitude });
-  
-      if (socketReady) {
-        const locationData = { latitude, longitude };
-        socket.send(JSON.stringify(locationData));  // Send location data to WebSocket
-        console.log('Location data sent:', locationData);
-      } else {
-        console.log('WebSocket not open. Retrying to send data...');
-        setTimeout(() => sendLocationToWebSocket(latitude, longitude), 1000);  // Retry sending after 1 second
-      }
-    };
-
-
-  // Watch position and send location updates
-  useEffect(() => {
-    const watchId = Geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setLocation({ latitude, longitude });
-        sendLocationToWebSocket(latitude, longitude);  // Send location to WebSocket
-        fetchAvailableVets(latitude, longitude);  // Fetch nearby vets
-      },
-      (error) => {
-        console.error('Location Error:', error);
-        Alert.alert('Location Error', error.message);
-      },
-      {
-        enableHighAccuracy: true,
-        distanceFilter: 1,  // Update the position every 1 meter
-        interval: 1000,  // Get updates every second
-        fastestInterval: 500,  // Fastest possible update interval (in milliseconds)
-      }
-    );
-
-    return () => {
-      Geolocation.clearWatch(watchId);  // Clear location watch on unmount
-    };
-  }, []);  // Empty array ensures this effect only runs once when component mounts
-
+  // Fetch vets from backend
   const fetchAvailableVets = async (latitude, longitude) => {
     try {
       const token = await AsyncStorage.getItem('access_token');
-      const response = await fetch('http://104.248.23.245:8001/api/profiles/vets/available/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+      const res = await fetch(
+        ' http://192.168.100.4:8000/api/profiles/vets/available/',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({latitude, longitude}),
         },
-        body: JSON.stringify({ latitude, longitude }),
-      });
+      );
 
-      if (response.ok) {
-        const data = await response.json();
-        setVets(data);
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Error', errorData.detail || 'Unable to fetch available vets.');
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch (parseErr) {
+        console.warn('❌ Failed parsing vets JSON:', parseErr);
       }
-    } catch (error) {
-      console.error('Error fetching vets:', error);
+
+      if (res.ok) {
+        setVetsRaw(Array.isArray(data) ? data : []);
+      } else {
+        Alert.alert('Error', (data && data.detail) || 'Failed to fetch vets.');
+      }
+    } catch (err) {
+      console.error('🔥 Error fetching vets:', err);
     }
   };
 
-  const requestVet = async () => {
-    if (!location) {
-      Alert.alert('Error', 'Location is required');
-      return;
+  // Ask Android permission
+  const ensurePermission = async () => {
+    if (Platform.OS === 'android') {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+          {
+            title: 'Location Permission',
+            message: 'We need your location to show it on the map.',
+            buttonPositive: 'OK',
+          },
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (e) {
+        console.warn('Permission error', e);
+        return false;
+      }
     }
+    return true;
+  };
 
+  // Get current location
+  const getCurrentLocation = async () => {
+    setLoading(true);
     try {
-      const token = await AsyncStorage.getItem('access_token');
-      const response = await fetch('http://104.248.23.245/api/vet_requests/request/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ location, description }),
+      const ok = await ensurePermission();
+      if (!ok) {
+        setLoading(false);
+        Alert.alert('Permission Denied', 'Location permission is required.');
+        return;
+      }
+
+      const pos = await GetLocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        Alert.alert('Request sent', `Vet request successful. Vet ID: ${data.vet_id}`);
-        setModalVisible(false); // Close modal on success
-        setDescription(''); // Reset description
-      } else {
-        const errorData = await response.json();
-        Alert.alert('Error', errorData.error || 'Failed to send request.');
+      const lat = parseCoord(pos?.latitude ?? pos?.coords?.latitude);
+      const lon = parseCoord(pos?.longitude ?? pos?.coords?.longitude);
+
+      console.log('📍 Raw location:', pos);
+      console.log('📍 Parsed lat/lon:', lat, lon);
+
+      // ✅ Guard against invalid coordinates
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        console.warn('❌ Invalid coordinates from GetLocation:', lat, lon);
+        throw new Error('Invalid coordinates from GetLocation');
       }
-    } catch (error) {
-      console.error('Error requesting vet:', error);
+
+      const newLocation = {latitude: lat, longitude: lon};
+      const newRegion = {
+        latitude: lat,
+        longitude: lon,
+        latitudeDelta: 0.02,
+        longitudeDelta: 0.02,
+      };
+
+      // ✅ Set only valid data
+      setLocation(newLocation);
+      setRegion(newRegion);
+
+      // ✅ Animate map safely
+      if (mapRef.current?.animateToRegion) {
+        mapRef.current.animateToRegion(newRegion, 700);
+      }
+
+      // ✅ Fetch vets only if coords valid
+      await fetchAvailableVets(lat, lon);
+    } catch (err) {
+      console.error('Location error:', err);
+
+      Alert.alert(
+        'Location Unavailable',
+        'Could not obtain your location. Make sure GPS is enabled.',
+        [
+          {text: 'Open Settings', onPress: () => Linking.openSettings?.()},
+          {text: 'Retry', onPress: getCurrentLocation},
+        ],
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Run once + refresh every 10s
+  useEffect(() => {
+    getCurrentLocation();
+    const interval = setInterval(getCurrentLocation, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Filter vets inside radius
+  const vetsInRadius = useMemo(() => {
+    if (!location || !Array.isArray(vetsRaw)) return [];
+
+    return vetsRaw
+      .map(v => {
+        const lat = parseCoord(v.latitude ?? v.lat ?? v.coords?.latitude);
+        const lon = parseCoord(v.longitude ?? v.lon ?? v.coords?.longitude);
+
+        const distance =
+          Number.isFinite(lat) && Number.isFinite(lon)
+            ? distanceKm(location.latitude, location.longitude, lat, lon)
+            : Infinity;
+
+        return {
+          ...v,
+          _parsedLatitude: lat,
+          _parsedLongitude: lon,
+          distanceKm: distance,
+        };
+      })
+      .filter(
+        p =>
+          Number.isFinite(p._parsedLatitude) &&
+          Number.isFinite(p._parsedLongitude) &&
+          p.distanceKm <= RADIUS_KM,
+      )
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+  }, [vetsRaw, location]);
+
+  // Center map on vet
+  const centerOnVet = vet => {
+    if (!vet || !Number.isFinite(vet._parsedLatitude)) return;
+    const r = {
+      latitude: vet._parsedLatitude,
+      longitude: vet._parsedLongitude,
+      latitudeDelta: 0.02,
+      longitudeDelta: 0.02,
+    };
+    setRegion(r);
+    if (mapRef.current?.animateToRegion) {
+      mapRef.current.animateToRegion(r, 500);
     }
   };
 
   return (
     <View style={styles.container}>
-      {location ? (
-        <MapView
-          style={styles.map}
-          initialRegion={{
-            latitude: location.latitude,
-            longitude: location.longitude,
-            latitudeDelta: 0.1,
-            longitudeDelta: 0.1,
-          }}
-        >
-          <Marker coordinate={location} title="Your Location" />
-          {vets.map((vet) => (
+      {region && location ? (
+        <>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            provider={PROVIDER_GOOGLE}
+            initialRegion={region}
+            region={region}
+            showsUserLocation={false}
+            showsMyLocationButton={true}>
+            {/* User marker */}
             <Marker
-              key={vet.id}
-              coordinate={{ latitude: vet.latitude, longitude: vet.longitude }}
-              image={CustomMarker}
-              style={{ width: 60, height: 60 }}
+              coordinate={location}
+              title="Your Location"
+              pinColor="red"
             />
-          ))}
-        </MapView>
+
+            <Circle
+              center={location}
+              radius={RADIUS_METERS}
+              strokeWidth={2}
+              strokeColor="rgba(255,0,0,0.6)"
+              fillColor="rgba(255,0,0,0.12)"
+            />
+
+            {/* Vet markers */}
+            {vetsInRadius.map(vet => (
+              <Marker
+                key={vet.id ?? `${vet._parsedLatitude}-${vet._parsedLongitude}`}
+                coordinate={{
+                  latitude: vet._parsedLatitude,
+                  longitude: vet._parsedLongitude,
+                }}
+                title={
+                  vet.name
+                    ? `${vet.name} • ${vet.distanceKm.toFixed(1)} km`
+                    : `${vet.distanceKm.toFixed(1)} km away`
+                }>
+                <View style={styles.vetMarkerInner} />
+              </Marker>
+            ))}
+          </MapView>
+
+          {/* Vet list */}
+          <View style={styles.vetList}>
+            <FlatList
+              data={vetsInRadius}
+              horizontal
+              keyExtractor={item =>
+                item.id
+                  ? String(item.id)
+                  : `${item._parsedLatitude}-${item._parsedLongitude}`
+              }
+              renderItem={({item}) => (
+                <View style={styles.vetCard}>
+                  <Text style={styles.vetName}>
+                    {item.name ?? 'Unnamed Vet'}
+                  </Text>
+                  <Text style={styles.vetDistance}>
+                    {item.distanceKm ? `${item.distanceKm.toFixed(1)} km` : ''}
+                  </Text>
+                  <View style={styles.vetButtons}>
+                    <TouchableOpacity
+                      onPress={() => centerOnVet(item)}
+                      style={styles.vetBtn}>
+                      <Text style={styles.vetBtnText}>Center</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => handleRequestVet(item)}
+                      style={[
+                        styles.vetBtn,
+                        {
+                          marginLeft: 6,
+                          borderColor: '#d67321ff',
+                          borderWidth: 1,
+                        },
+                      ]}>
+                      <Text style={styles.vetBtnText}>Request</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyTitle}>
+                    No vets available nearby
+                  </Text>
+                  <Text style={styles.emptySubtitle}>
+                    Try again later or expand your search radius.
+                  </Text>
+                </View>
+              }
+            />
+          </View>
+        </>
       ) : (
         <View style={styles.loadingContainer}>
           <Button title="Fetching Location..." disabled />
         </View>
       )}
 
-      {/* Request Vet Button */}
-      <View style={styles.buttonContainer}>
-        <Button title="Request Vet" onPress={() => setModalVisible(true)} />
-      </View>
-
-      {/* Modal for Requesting Vet */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TextInput
-              placeholder="Describe your issue"
-              value={description}
-              onChangeText={setDescription}
-              style={styles.textInput}
-              multiline={true}
-            />
-            <Button title="Submit Request" onPress={requestVet} />
-            <Button title="Cancel" onPress={() => setModalVisible(false)} />
-          </View>
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" />
         </View>
-      </Modal>
+      )}
+      <RequestVetModal
+        visible={modalVisible}
+        vet={selectedVet}
+        onClose={() => setModalVisible(false)}
+        onSubmit={handleSubmitRequest}
+      />
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  map: {
-    width: '100%',
-    height: Dimensions.get('window').height - 100, // Leave space for the button
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  buttonContainer: {
+  container: {flex: 1},
+  map: {flex: 1},
+  loadingContainer: {flex: 1, justifyContent: 'center', alignItems: 'center'},
+  loadingOverlay: {
     position: 'absolute',
-    bottom: 20,
-    color: '#ffa500',
-    left: 20,
-    right: 20,
-    zIndex: 1000, // Ensure button is above the map
-  },
-  modalContainer: {
-    flex: 1,
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffa500',
   },
-  modalContent: {
-    width: '80%',
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    alignItems: 'center',
+  vetMarkerInner: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#007bff',
+    borderWidth: 2,
+    borderColor: 'white',
   },
-  textInput: {
-    width: '100%',
-    height: 100,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    marginBottom: 10,
-    padding: 10,
+  vetList: {
+    position: 'absolute',
+    bottom: 56,
+    left: 8,
+    right: 8,
+    height: 140,
+    paddingVertical: 6,
   },
-});
 
-export default DashboardScreen;
+  vetCard: {
+    padding: 8,
+    marginRight: 8,
+    borderRadius: 8,
+    minWidth: 160,
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#d67321ff',
+    backgroundColor: '#e9e7e5ff',
+  },
+
+  vetName: {color: '#30d61aff', fontWeight: '600'},
+  vetDistance: {color: '#5024eeff', marginTop: 4},
+  vetButtons: {flexDirection: 'row', marginTop: 6},
+  vetBtn: {
+    backgroundColor: '#ffa500',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  vetBtnText: {color: '#000', fontWeight: '600'},
+});

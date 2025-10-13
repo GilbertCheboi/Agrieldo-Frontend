@@ -1,8 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Image, StyleSheet, Alert, PermissionsAndroid } from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Button,
+  Image,
+  StyleSheet,
+  Alert,
+  PermissionsAndroid,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useNavigation } from '@react-navigation/native';
-import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
+import {useNavigation} from '@react-navigation/native';
+import {launchImageLibrary, launchCamera} from 'react-native-image-picker';
 
 const AddPostScreen = () => {
   const navigation = useNavigation();
@@ -20,7 +29,10 @@ const AddPostScreen = () => {
           setToken(savedToken);
           console.log('Retrieved token:', savedToken); // Log the retrieved token
         } else {
-          Alert.alert('Error', 'No authorization token found. Please log in again.');
+          Alert.alert(
+            'Error',
+            'No authorization token found. Please log in again.',
+          );
           navigation.navigate('Login');
         }
       } catch (error) {
@@ -36,12 +48,12 @@ const AddPostScreen = () => {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.CAMERA,
         {
-          title: "Camera Permission",
-          message: "This app needs access to your camera to take pictures.",
-          buttonNeutral: "Ask Me Later",
-          buttonNegative: "Cancel",
-          buttonPositive: "OK",
-        }
+          title: 'Camera Permission',
+          message: 'This app needs access to your camera to take pictures.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     } catch (err) {
@@ -52,7 +64,10 @@ const AddPostScreen = () => {
 
   const handlePost = async () => {
     if (!token) {
-      Alert.alert('Error', 'No authorization token found. Please log in again.');
+      Alert.alert(
+        'Error',
+        'No authorization token found. Please log in again.',
+      );
       return;
     }
 
@@ -70,15 +85,18 @@ const AddPostScreen = () => {
     }
 
     try {
-      const response = await fetch('http://104.248.23.245:8000/api/feed/posts/', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`, // Use the retrieved token here
-          'Content-Type': 'multipart/form-data',
+      const response = await fetch(
+        ' http://192.168.100.4:8000/api/feed/posts/',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Token ${token}`, // Use the retrieved token here
+            'Content-Type': 'multipart/form-data',
+          },
+          body: formData,
         },
-        body: formData,
-      });
-      
+      );
+
       if (response.ok) {
         navigation.goBack(); // Navigate back after successful post
       } else {
@@ -100,7 +118,7 @@ const AddPostScreen = () => {
       quality: 1,
     };
 
-    launchImageLibrary(options, (response) => {
+    launchImageLibrary(options, response => {
       console.log('Image library response:', response); // Log the response for debugging
       if (response.didCancel) {
         Alert.alert('Image Selection', 'No image selected.');
@@ -128,7 +146,7 @@ const AddPostScreen = () => {
       quality: 1,
     };
 
-    launchCamera(options, (response) => {
+    launchCamera(options, response => {
       console.log('Camera response:', response); // Log the response for debugging
       if (response.didCancel) {
         Alert.alert('Camera', 'No image taken.');
@@ -145,11 +163,7 @@ const AddPostScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Title:</Text>
-      <TextInput
-        style={styles.input}
-        value={title}
-        onChangeText={setTitle}
-      />
+      <TextInput style={styles.input} value={title} onChangeText={setTitle} />
       <Text style={styles.label}>Content:</Text>
       <TextInput
         style={styles.input}
@@ -159,7 +173,7 @@ const AddPostScreen = () => {
       />
       <Button title="Pick an Image" onPress={pickImage} />
       <Button title="Open Camera" onPress={openCamera} />
-      {image && <Image source={{ uri: image }} style={styles.image} />}
+      {image && <Image source={{uri: image}} style={styles.image} />}
       <Button title="Add Post" onPress={handlePost} color="#007BFF" />
     </View>
   );

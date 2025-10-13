@@ -166,11 +166,11 @@
 //             if (isEditingHealth && editingHealthRecordId) {
 //               await updateHealthRecord(editingHealthRecordId, {
 //                 ...healthForm,
-//                 animal: animal.id,
+//                 animal: currentAnimal.id,
 //               });
 //               console.log('Health record updated successfully');
 //             } else {
-//               await addHealthRecord(animal.id, healthForm);
+//               await addHealthRecord(currentAnimal.id, healthForm);
 //               console.log('Health record added successfully');
 //             }
 //             setIsHealthModalOpen(false);
@@ -209,11 +209,11 @@
 //             if (isEditingRepro && editingReproId) {
 //               await updateReproductiveHistory(editingReproId, {
 //                 ...reproForm,
-//                 animal: animal.id,
+//                 animal: currentAnimal.id,
 //               });
 //               console.log('Reproductive history updated successfully');
 //             } else {
-//               await addReproductiveHistory(animal.id, reproForm);
+//               await addReproductiveHistory(currentAnimal.id, reproForm);
 //               console.log('Reproductive history added successfully');
 //             }
 
@@ -259,11 +259,11 @@
 //             if (isEditingLactation && editingLactationId) {
 //               await updateLactationRecord(editingLactationId, {
 //                 ...lactationForm,
-//                 animal: animal.id,
+//                 animal: currentAnimal.id,
 //               });
 //               console.log('Lactation record updated successfully');
 //             } else {
-//               await addLactationRecord(animal.id, lactationForm);
+//               await addLactationRecord(currentAnimal.id, lactationForm);
 //               console.log('Lactation record added successfully');
 //             }
 
@@ -309,11 +309,11 @@
 //             if (isEditingMilk && editingMilkId) {
 //               await updateProductionData(editingMilkId, {
 //                 ...milkForm,
-//                 animal: animal.id,
+//                 animal: currentAnimal.id,
 //               });
 //               console.log('Milk production record updated successfully');
 //             } else {
-//               await addProductionData(animal.id, milkForm);
+//               await addProductionData(currentAnimal.id, milkForm);
 //               console.log('Milk production record added successfully');
 //             }
 
@@ -400,11 +400,14 @@ import {
   addLactationRecord,
   addProductionData,
   addReproductiveHistory,
+  deleteHealthRecord,
   updateHealthRecord,
   updateLactationRecord,
   updateProductionData,
   updateReproductiveHistory,
 } from '../utils/api';
+
+import {fetchAnimals} from '../utils/api'; // make sure this is imported
 
 const tabs = [
   {key: 'health', label: 'Health Records'},
@@ -434,6 +437,19 @@ const AnimalFullProfile = ({route}) => {
     treatment: '',
     cost: '',
   });
+  const [currentAnimal, setCurrentAnimal] = useState(animal); // replaces `animal`
+
+  const refreshAnimalData = async () => {
+    try {
+      const animals = await fetchAnimals(currentAnimal.farm);
+      const updated = animals.find(a => a.id === currentAnimal.id);
+      if (updated) {
+        setCurrentAnimal(updated);
+      }
+    } catch (err) {
+      console.error('Failed to refresh animal data:', err.message);
+    }
+  };
 
   const handleEditHealth = record => {
     setIsEditingHealth(true);
@@ -449,6 +465,19 @@ const AnimalFullProfile = ({route}) => {
       cost: record.cost?.toString() || '',
     });
     setIsHealthModalOpen(true);
+  };
+
+  const handleDeleteHealth = async recordId => {
+    try {
+      // create delete API call here if not existing
+      await deleteHealthRecord(recordId);
+      await refreshAnimalData(); // refresh the UI
+    } catch (error) {
+      console.error(
+        'Error deleting health record:',
+        error.response?.data || error.message,
+      );
+    }
   };
 
   // --- Reproductive ---
@@ -533,18 +562,19 @@ const AnimalFullProfile = ({route}) => {
       case 'health':
         return (
           <HealthRecords
-            healthRecords={animal.health_records}
+            healthRecords={currentAnimal.health_records}
             setIsHealthModalOpen={setIsHealthModalOpen}
             setIsEditingHealth={setIsEditingHealth}
             setHealthForm={setHealthForm}
             handleEditHealth={handleEditHealth}
+            handleDeleteHealth={handleDeleteHealth}
             canEdit={canEdit}
           />
         );
       case 'repro':
         return (
           <ReproductiveHistory
-            records={animal.reproductive_history}
+            records={currentAnimal.reproductive_history}
             setIsReproModalOpen={setIsReproModalOpen}
             setIsEditingRepro={setIsEditingRepro}
             setReproForm={setReproForm}
@@ -555,7 +585,7 @@ const AnimalFullProfile = ({route}) => {
       case 'lactation':
         return (
           <LactationRecords
-            records={animal.lactation_periods}
+            records={currentAnimal.lactation_periods}
             setIsLactationModalOpen={setIsLactationModalOpen}
             setIsEditingLactation={setIsEditingLactation}
             setLactationForm={setLactationForm}
@@ -566,7 +596,7 @@ const AnimalFullProfile = ({route}) => {
       case 'milk':
         return (
           <DailyMilkProduction
-            records={animal.production_data}
+            records={currentAnimal.production_data}
             setIsMilkModalOpen={setIsMilkModalOpen}
             setIsEditingMilk={setIsEditingMilk}
             setMilkForm={setMilkForm}
@@ -581,8 +611,8 @@ const AnimalFullProfile = ({route}) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{animal.name}'s Full Profile</Text>
-      <AnimalCard animal={animal} />
+      <Text style={styles.title}>{currentAnimal.name}'s Full Profile</Text>
+      <AnimalCard animal={currentAnimal} />
 
       {/* Tabs */}
       <ScrollView
@@ -624,11 +654,14 @@ const AnimalFullProfile = ({route}) => {
             if (isEditingHealth && editingHealthRecordId) {
               await updateHealthRecord(editingHealthRecordId, {
                 ...healthForm,
-                animal: animal.id,
+                animal: currentAnimal.id,
               });
             } else {
-              await addHealthRecord(animal.id, healthForm);
+              await addHealthRecord(currentAnimal.id, healthForm);
             }
+
+            await refreshAnimalData(); // <<<<< ADD THIS LINE
+
             setIsHealthModalOpen(false);
             setEditingHealthRecordId(null);
             setIsEditingHealth(false);
@@ -656,11 +689,12 @@ const AnimalFullProfile = ({route}) => {
             if (isEditingRepro && editingReproId) {
               await updateReproductiveHistory(editingReproId, {
                 ...reproForm,
-                animal: animal.id,
+                animal: currentAnimal.id,
               });
             } else {
-              await addReproductiveHistory(animal.id, reproForm);
+              await addReproductiveHistory(currentAnimal.id, reproForm);
             }
+            await refreshAnimalData();
             setIsReproModalOpen(false);
             setIsEditingRepro(false);
             setEditingReproId(null);
@@ -688,11 +722,12 @@ const AnimalFullProfile = ({route}) => {
             if (isEditingLactation && editingLactationId) {
               await updateLactationRecord(editingLactationId, {
                 ...lactationForm,
-                animal: animal.id,
+                animal: currentAnimal.id,
               });
             } else {
-              await addLactationRecord(animal.id, lactationForm);
+              await addLactationRecord(currentAnimal.id, lactationForm);
             }
+            await refreshAnimalData();
             setIsLactationModalOpen(false);
             setEditingLactationId(null);
             setIsEditingLactation(false);
@@ -720,11 +755,12 @@ const AnimalFullProfile = ({route}) => {
             if (isEditingMilk && editingMilkId) {
               await updateProductionData(editingMilkId, {
                 ...milkForm,
-                animal: animal.id,
+                animal: currentAnimal.id,
               });
             } else {
-              await addProductionData(animal.id, milkForm);
+              await addProductionData(currentAnimal.id, milkForm);
             }
+            await refreshAnimalData();
             setIsMilkModalOpen(false);
             setEditingMilkId(null);
             setIsEditingMilk(false);

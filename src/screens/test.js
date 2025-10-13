@@ -8,7 +8,7 @@ const DashboardScreen = () => {
   const [location, setLocation] = useState(null);
   const [vets, setVets] = useState([]);
   const [vetId, setVetId] = useState('YOUR_VET_ID'); // Replace with the actual vet ID
-  const socket = new WebSocket('ws://104.248.23.245/ws/vet-requests/'); // Replace with your WebSocket URL
+  const socket = new WebSocket('ws://192.168.100.4/ws/vet-requests/'); // Replace with your WebSocket URL
 
   useEffect(() => {
     // Request user's location
@@ -48,7 +48,7 @@ const DashboardScreen = () => {
   const fetchAvailableVets = async () => {
     try {
       const response = await fetch(
-        'https://api.agrieldo.com/api/profiles/vets/',
+        ' http://192.168.100.4:8000 /api/profiles/vets/',
       );
 
       console.log('Response status:', response.status); // Log status code
@@ -77,7 +77,7 @@ const DashboardScreen = () => {
 
     try {
       const response = await fetch(
-        'http://104.248.23.245:8000/api/vet_requests/requests/create/',
+        ' http://192.168.100.4:8000/api/vet_requests/requests/create/',
         {
           method: 'POST',
           headers: {

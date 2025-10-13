@@ -10,7 +10,7 @@ const VetActivityHistoryScreen = () => {
   useEffect(() => {
     // Fetch the vet's activity history from the backend
     axios
-      .get('https://api.agrieldo.com/api/vet/activities')
+      .get(' http://192.168.100.4:8000 /api/vet/activities')
       .then(response => setActivities(response.data))
       .catch(error => console.error(error));
   }, []);

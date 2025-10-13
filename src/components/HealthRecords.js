@@ -1,12 +1,14 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import ConfirmDeleteModal from '../screens/modals/ConfirmDeleteModal';
 
 const HealthRecords = ({
   healthRecords = [],
@@ -14,8 +16,29 @@ const HealthRecords = ({
   setIsEditingHealth,
   setHealthForm,
   handleEditHealth,
+  handleDeleteHealth,
   canEdit = false,
 }) => {
+  const [confirmVisible, setConfirmVisible] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState(null);
+
+  const handleConfirmDelete = async () => {
+    if (recordToDelete) {
+      try {
+        await handleDeleteHealth(recordToDelete); // wait for backend delete
+        Alert.alert('Success', 'Health record deleted successfully'); // 👈 show success alert
+      } catch (error) {
+        console.error('Error deleting record:', error);
+        Alert.alert(
+          'Error',
+          'Failed to delete health record. Please try again.',
+        );
+      } finally {
+        setConfirmVisible(false);
+        setRecordToDelete(null);
+      }
+    }
+  };
   const handleAdd = () => {
     setIsEditingHealth(false);
     setHealthForm({
@@ -44,19 +67,18 @@ const HealthRecords = ({
                 <Text style={styles.dateText}> {record.date}</Text>
               </View>
 
-              {record.clinical_signs ? (
+              {record.type ? (
                 <Text style={styles.recordLine}>
                   <Text style={styles.key}>Record type: </Text>
                   {record.type}
                 </Text>
               ) : null}
-              {record.clinical_signs ? (
+              {record.details ? (
                 <Text style={styles.recordLine}>
                   <Text style={styles.key}>Details: </Text>
                   {record.details}
                 </Text>
               ) : null}
-
               {record.clinical_signs ? (
                 <Text style={styles.recordLine}>
                   <Text style={styles.key}>Signs: </Text>
@@ -84,11 +106,23 @@ const HealthRecords = ({
             </View>
 
             {canEdit && (
-              <TouchableOpacity
-                onPress={() => handleEditHealth(record)}
-                style={styles.editButton}>
-                <Icon name="pencil" size={18} color="#fff" />
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  onPress={() => handleEditHealth(record)}
+                  style={styles.editButton}>
+                  <Icon name="pencil" size={18} color="#fff" />
+                </TouchableOpacity>
+
+                {/* 👇 Delete icon at bottom-right of each record */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setRecordToDelete(record.id);
+                    setConfirmVisible(true);
+                  }}
+                  style={styles.deleteButton}>
+                  <Icon name="delete" size={18} color="#fff" />
+                </TouchableOpacity>
+              </>
             )}
           </View>
         ))}
@@ -102,6 +136,13 @@ const HealthRecords = ({
           <Icon name="plus" size={18} color="#fff" />
         </TouchableOpacity>
       )}
+
+      <ConfirmDeleteModal
+        visible={confirmVisible}
+        onCancel={() => setConfirmVisible(false)}
+        onConfirm={handleConfirmDelete}
+        message="Are you sure you want to delete this health record?"
+      />
     </View>
   );
 };
@@ -133,7 +174,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#444',
   },
-
   recordItem: {
     marginBottom: 12,
     padding: 10,
@@ -145,17 +185,6 @@ const styles = StyleSheet.create({
   },
   recordText: {
     marginBottom: 6,
-  },
-  dateLine: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  detailLine: {
-    fontSize: 13,
-    color: '#444',
-    marginBottom: 4,
   },
   recordLine: {
     fontSize: 13,
@@ -174,6 +203,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffa500',
     borderRadius: 20,
   },
+  deleteButton: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    padding: 6,
+    backgroundColor: '#e53935', // red color for delete
+    borderRadius: 20,
+  },
   fab: {
     position: 'absolute',
     bottom: 10,
@@ -189,7 +226,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 3,
     shadowOffset: {width: 0, height: 2},
-    elevation: 5,
   },
 });
 

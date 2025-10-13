@@ -11,7 +11,9 @@ const AnimalMedicalRecordsScreen = ({route}) => {
   useEffect(() => {
     // Fetch the medical records from the backend
     axios
-      .get(`https://api.agrieldo.com/api/animals/${animalId}/medical-records`)
+      .get(
+        ` http://192.168.100.4:8000 /api/animals/${animalId}/medical-records`,
+      )
       .then(response => setRecords(response.data))
       .catch(error => console.error(error));
   }, [animalId]);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -13,17 +13,17 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { FAB } from 'react-native-paper';
+import {FAB} from 'react-native-paper';
 import jwt_decode from 'jwt-decode';
-import { launchImageLibrary } from 'react-native-image-picker';
+import {launchImageLibrary} from 'react-native-image-picker';
 
 // Set up axios instance
 const axiosInstance = axios.create({
-  baseURL: 'http://104.248.23.245/',
+  baseURL: 'http://192.168.100.4:8000/',
 });
 
 // Function to check if token is expired
-const isTokenExpired = (token) => {
+const isTokenExpired = token => {
   if (!token) return true; // If there's no token, consider it expired
   try {
     const decodedToken = jwt_decode(token); // Decode the token
@@ -38,9 +38,12 @@ const isTokenExpired = (token) => {
 const refreshAccessToken = async () => {
   const refreshToken = await AsyncStorage.getItem('refresh_token');
 
-  const response = await axios.post('http://104.248.23.245/api/accounts/api/token/refresh/', {
-    refresh: refreshToken,
-  });
+  const response = await axios.post(
+    'http://192.168.100.4:8000/api/accounts/api/token/refresh/',
+    {
+      refresh: refreshToken,
+    },
+  );
 
   // Store the new access token
   await AsyncStorage.setItem('access_token', response.data.access);
@@ -49,7 +52,7 @@ const refreshAccessToken = async () => {
 
 // Axios request interceptor to add the Authorization header
 axiosInstance.interceptors.request.use(
-  async (config) => {
+  async config => {
     let token = await AsyncStorage.getItem('access_token');
 
     // Check if the token is expired
@@ -61,12 +64,12 @@ axiosInstance.interceptors.request.use(
     config.headers['Authorization'] = `Bearer ${token}`;
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
-  }
+  },
 );
 
-const AllAnimalsScreen = ({ navigation }) => {
+const AllAnimalsScreen = ({navigation}) => {
   const [animals, setAnimals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isTypeModalVisible, setIsTypeModalVisible] = useState(false);
@@ -102,7 +105,7 @@ const AllAnimalsScreen = ({ navigation }) => {
       includeBase64: false,
     };
 
-    launchImageLibrary(options, (response) => {
+    launchImageLibrary(options, response => {
       if (response.didCancel) {
         console.log('User cancelled image picker');
       } else if (response.error) {
@@ -113,12 +116,12 @@ const AllAnimalsScreen = ({ navigation }) => {
           type: response.assets[0].type,
           name: response.assets[0].fileName || 'animal.jpg',
         };
-        setNewAnimal({ ...newAnimal, image: source });
+        setNewAnimal({...newAnimal, image: source});
       }
     });
   };
 
-  const handleAnimalTypeSelect = (type) => {
+  const handleAnimalTypeSelect = type => {
     setAnimalType(type);
     setIsTypeModalVisible(false);
     setIsFormModalVisible(true);
@@ -126,12 +129,18 @@ const AllAnimalsScreen = ({ navigation }) => {
 
   const handleAddAnimal = async () => {
     try {
-      const url = `api/animals/${animalType === 'Dairy Cow' ? 'dairy-cows' : animalType === 'Beef Cow' ? 'beef-cows' : animalType.toLowerCase()}/`;
+      const url = `api/animals/${
+        animalType === 'Dairy Cow'
+          ? 'dairy-cows'
+          : animalType === 'Beef Cow'
+          ? 'beef-cows'
+          : animalType.toLowerCase()
+      }/`;
 
-      console.log("API URL:", url);
-  
+      console.log('API URL:', url);
+
       // Log the newAnimal object to see the initial data
-      console.log("Initial Animal Data:", newAnimal);
+      console.log('Initial Animal Data:', newAnimal);
       const formData = new FormData();
       formData.append('name', newAnimal.name);
       formData.append('species', newAnimal.species);
@@ -149,7 +158,7 @@ const AllAnimalsScreen = ({ navigation }) => {
       });
       fetchAnimals();
       setIsFormModalVisible(false);
-      setNewAnimal({ name: '', species: '', age: '', gender: 'M', image: null });
+      setNewAnimal({name: '', species: '', age: '', gender: 'M', image: null});
     } catch (error) {
       console.error('Failed to add animal:', error);
       Alert.alert('Error', 'Failed to add animal');
@@ -169,17 +178,20 @@ const AllAnimalsScreen = ({ navigation }) => {
     <View style={styles.container}>
       <FlatList
         data={animals}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
+        keyExtractor={item => item.id.toString()}
+        renderItem={({item}) => (
           <TouchableOpacity
             style={styles.animalItem}
-            onPress={() => navigation.navigate('AnimalDetails', { animalId: item.id })}
-          >
-            <Text style={styles.animalName}>{item.name} ({item.species})</Text>
+            onPress={() =>
+              navigation.navigate('AnimalDetails', {animalId: item.id})
+            }>
+            <Text style={styles.animalName}>
+              {item.name} ({item.species})
+            </Text>
             <Text>Age: {item.age}</Text>
             <Text>Gender: {item.gender === 'M' ? 'Male' : 'Female'}</Text>
             {item.image && (
-              <Image source={{ uri: item.image }} style={styles.animalImage} />
+              <Image source={{uri: item.image}} style={styles.animalImage} />
             )}
           </TouchableOpacity>
         )}
@@ -195,21 +207,28 @@ const AllAnimalsScreen = ({ navigation }) => {
         animationType="slide"
         transparent={true}
         visible={isTypeModalVisible}
-        onRequestClose={() => setIsTypeModalVisible(false)}
-      >
+        onRequestClose={() => setIsTypeModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.typeModalView}>
             <Text style={styles.modalTitle}>Select Animal Type</Text>
-            <TouchableOpacity onPress={() => handleAnimalTypeSelect('Dairy Cow')} style={styles.modalButton}>
+            <TouchableOpacity
+              onPress={() => handleAnimalTypeSelect('Dairy Cow')}
+              style={styles.modalButton}>
               <Text style={styles.buttonText}>Dairy Cow</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleAnimalTypeSelect('Beef Cow')} style={styles.modalButton}>
+            <TouchableOpacity
+              onPress={() => handleAnimalTypeSelect('Beef Cow')}
+              style={styles.modalButton}>
               <Text style={styles.buttonText}>Beef Cow</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => handleAnimalTypeSelect('Sheep')} style={styles.modalButton}>
+            <TouchableOpacity
+              onPress={() => handleAnimalTypeSelect('Sheep')}
+              style={styles.modalButton}>
               <Text style={styles.buttonText}>Sheep</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setIsTypeModalVisible(false)} style={styles.cancelButton}>
+            <TouchableOpacity
+              onPress={() => setIsTypeModalVisible(false)}
+              style={styles.cancelButton}>
               <Text style={styles.buttonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -220,8 +239,7 @@ const AllAnimalsScreen = ({ navigation }) => {
         animationType="slide"
         transparent={true}
         visible={isFormModalVisible}
-        onRequestClose={() => setIsFormModalVisible(false)}
-      >
+        onRequestClose={() => setIsFormModalVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.formModalView}>
             <Text style={styles.modalTitle}>Add New {animalType}</Text>
@@ -229,48 +247,67 @@ const AllAnimalsScreen = ({ navigation }) => {
               placeholder="Animal Name"
               style={styles.input}
               value={newAnimal.name}
-              onChangeText={(text) => setNewAnimal({ ...newAnimal, name: text })}
+              onChangeText={text => setNewAnimal({...newAnimal, name: text})}
             />
             <TextInput
               placeholder="Species Name"
               style={styles.input}
               value={newAnimal.species}
-              onChangeText={(text) => setNewAnimal({ ...newAnimal, species: text })}
+              onChangeText={text => setNewAnimal({...newAnimal, species: text})}
             />
             <TextInput
               placeholder="Tag Name"
               style={styles.input}
               value={newAnimal.tag}
-              onChangeText={(text) => setNewAnimal({ ...newAnimal, tag: text })}
+              onChangeText={text => setNewAnimal({...newAnimal, tag: text})}
             />
             <TextInput
               placeholder="Age"
               keyboardType="numeric"
               style={styles.input}
               value={newAnimal.age}
-              onChangeText={(text) => setNewAnimal({ ...newAnimal, age: text })}
+              onChangeText={text => setNewAnimal({...newAnimal, age: text})}
             />
-            <TouchableOpacity onPress={handleImagePick} style={styles.imagePickerButton}>
+            <TouchableOpacity
+              onPress={handleImagePick}
+              style={styles.imagePickerButton}>
               <Text style={styles.buttonText}>Pick an Image</Text>
             </TouchableOpacity>
             {newAnimal.image ? (
-              <Image source={{ uri: newAnimal.image.uri }} style={styles.selectedImage} />
+              <Image
+                source={{uri: newAnimal.image.uri}}
+                style={styles.selectedImage}
+              />
             ) : (
               <Text>No image selected</Text>
             )}
             <Text style={styles.genderLabel}>Gender:</Text>
             <View style={styles.genderContainer}>
-              <TouchableOpacity onPress={() => setNewAnimal({ ...newAnimal, gender: 'M' })} style={[styles.genderButton, newAnimal.gender === 'M' && styles.selectedGender]}>
+              <TouchableOpacity
+                onPress={() => setNewAnimal({...newAnimal, gender: 'M'})}
+                style={[
+                  styles.genderButton,
+                  newAnimal.gender === 'M' && styles.selectedGender,
+                ]}>
                 <Text style={styles.buttonText}>Male</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => setNewAnimal({ ...newAnimal, gender: 'F' })} style={[styles.genderButton, newAnimal.gender === 'F' && styles.selectedGender]}>
+              <TouchableOpacity
+                onPress={() => setNewAnimal({...newAnimal, gender: 'F'})}
+                style={[
+                  styles.genderButton,
+                  newAnimal.gender === 'F' && styles.selectedGender,
+                ]}>
                 <Text style={styles.buttonText}>Female</Text>
               </TouchableOpacity>
             </View>
-            <TouchableOpacity onPress={handleAddAnimal} style={styles.modalButton}>
+            <TouchableOpacity
+              onPress={handleAddAnimal}
+              style={styles.modalButton}>
               <Text style={styles.buttonText}>Add Animal</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setIsFormModalVisible(false)} style={styles.cancelButton}>
+            <TouchableOpacity
+              onPress={() => setIsFormModalVisible(false)}
+              style={styles.cancelButton}>
               <Text style={styles.buttonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -284,7 +321,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#f4f4f4',  // Light background for contrast
+    backgroundColor: '#f4f4f4', // Light background for contrast
   },
   animalItem: {
     marginVertical: 12,
@@ -294,7 +331,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#fff', // White background for the item
     shadowColor: '#000', // Adds shadow to make items pop
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5, // Elevation for Android
@@ -302,7 +339,7 @@ const styles = StyleSheet.create({
   animalName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',  // Dark text for readability
+    color: '#333', // Dark text for readability
   },
   animalImage: {
     width: 120,
@@ -317,16 +354,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: '#ffa500', // Make FAB button stand out
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: {width: 0, height: 4},
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 5,  // Elevation for Android
+    elevation: 5, // Elevation for Android
   },
   modalOverlay: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',  // Semi-transparent overlay
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
   },
   typeModalView: {
     width: '80%',
@@ -429,6 +466,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#f4f4f4',
   },
 });
-
 
 export default AllAnimalsScreen;

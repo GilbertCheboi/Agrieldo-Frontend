@@ -3,8 +3,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API = axios.create({
-  // baseURL: 'http://192.168.100.4:8000/api/',
-  baseURL: 'https://api.agrieldo.com/api/',
+  baseURL: ' http://192.168.100.4:8000/api/',
   timeout: 10000,
 });
 
@@ -14,7 +13,7 @@ API.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    // ❌ No Content-Type here, leave it dynamic
+    // No Content-Type here, leave it dynamic
     return config;
   },
   error => Promise.reject(error),

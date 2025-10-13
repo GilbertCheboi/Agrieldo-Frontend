@@ -1,164 +1,155 @@
-import React, { useState } from 'react';
-import { View, Text, Button, StyleSheet, FlatList, TouchableOpacity, Alert, Modal, TextInput } from 'react-native';
+// src/screens/MarketScreen.js
+import React, {useState} from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  Alert,
+  StyleSheet,
+} from 'react-native';
 
 const MarketScreen = () => {
-  // Dummy data for animals on sale
-  const [animals, setAnimals] = useState([
-    { id: '1', name: 'Bessie', species: 'Cow', price: 1500 },
-    { id: '2', name: 'Dolly', species: 'Sheep', price: 300 },
-    { id: '3', name: 'Cluckers', species: 'Chicken', price: 20 },
-    { id: '4', name: 'Billy', species: 'Goat', price: 250 },
-    { id: '5', name: 'Mittens', species: 'Cat', price: 100 },
-    { id: '6', name: 'Rover', species: 'Dog', price: 200 },
+  // Dummy data with images
+  const [animals] = useState([
+    {
+      id: '1',
+      name: 'Bessie',
+      species: 'Cow',
+      price: '150, 000',
+      image: require('../assets/fresian.jpeg'),
+    },
+    {
+      id: '2',
+      name: 'Dolly',
+      species: 'Sheep',
+      price: '6, 000',
+      image: require('../assets/sheep.jpeg'),
+    },
+    {
+      id: '3',
+      name: 'Cluckers',
+      species: 'Chicken',
+      price: '1, 200',
+      image: require('../assets/chicken.jpeg'),
+    },
+    {
+      id: '4',
+      name: 'Billy',
+      species: 'Goat',
+      price: '5, 000',
+      image: require('../assets/goat.jpeg'),
+    },
   ]);
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newAnimal, setNewAnimal] = useState({ name: '', species: '', price: '' });
-
-  const handleAnimalPress = (animal) => {
-    Alert.alert('Animal Selected', `You selected ${animal.name} (${animal.species}). Price: $${animal.price}`);
-    // Add functionality for viewing more details or purchasing
+  const handlePurchase = item => {
+    Alert.alert(
+      'Purchase Successful',
+      `You selected ${item.name} (${item.species}). Price: Ksh ${item.price}`,
+    );
   };
 
-  const handleAddAnimal = () => {
-    if (newAnimal.name && newAnimal.species && newAnimal.price) {
-      setAnimals((prevAnimals) => [
-        ...prevAnimals,
-        { id: (animals.length + 1).toString(), ...newAnimal },
-      ]);
-      setModalVisible(false); // Close the modal
-      setNewAnimal({ name: '', species: '', price: '' }); // Clear the form
-    } else {
-      Alert.alert('Invalid Input', 'Please fill in all fields');
-    }
-  };
+  const renderItem = ({item}) => (
+    <View style={styles.card}>
+      <Image source={item.image} style={styles.image} />
+      <View style={styles.cardContent}>
+        <Text style={styles.name}>{item.name}</Text>
+        <Text style={styles.species}>{item.species}</Text>
+        <View style={styles.bottomRow}>
+          <Text style={styles.price}>Ksh {item.price}</Text>
+          <TouchableOpacity
+            style={styles.cartButton}
+            onPress={() => handlePurchase(item)}>
+            <Text style={styles.cartButtonText}>Purchase</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Market</Text>
+      <Text style={styles.title}>Agrieldo Market</Text>
       <FlatList
         data={animals}
-        renderItem={({ item }) => (
-          <TouchableOpacity style={styles.item} onPress={() => handleAnimalPress(item)}>
-            <Text style={styles.animalName}>{item.name}</Text>
-            <Text style={styles.animalSpecies}>{item.species}</Text>
-            <Text style={styles.price}>${item.price}</Text>
-          </TouchableOpacity>
-        )}
-        keyExtractor={(item) => item.id}
+        renderItem={renderItem}
+        keyExtractor={item => item.id}
+        contentContainerStyle={styles.list}
       />
-      <Button title="Add Item" onPress={() => setModalVisible(true)} color="#ffa500" />
-
-      {/* Modal for adding an animal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Animal</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Animal Name"
-              value={newAnimal.name}
-              onChangeText={(text) => setNewAnimal({ ...newAnimal, name: text })}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Species"
-              value={newAnimal.species}
-              onChangeText={(text) => setNewAnimal({ ...newAnimal, species: text })}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Price"
-              value={newAnimal.price}
-              onChangeText={(text) => setNewAnimal({ ...newAnimal, price: text })}
-              keyboardType="numeric"
-            />
-            <Button title="Add Animal" onPress={handleAddAnimal} color="#ffa500" />
-            <Button title="Cancel" onPress={() => setModalVisible(false)} color="red" />
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
 
+export default MarketScreen;
+
+// 🎨 Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f8f8f8', // Lighter background for better contrast
+    backgroundColor: '#fefefe',
+    padding: 12,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 14,
     textAlign: 'center',
-    color: '#333', // Dark text for better visibility
+    color: '#ffa500',
   },
-  item: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd', // Lighter border
-    backgroundColor: '#fff', // White background for items
+  list: {
+    paddingBottom: 20,
+  },
+  card: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
     borderRadius: 10,
-    marginBottom: 8,
-    shadowColor: '#000', // Adding a shadow for visual depth
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    marginBottom: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
     shadowRadius: 4,
+    shadowOffset: {width: 0, height: 2},
+    elevation: 3,
   },
-  animalName: {
-    fontWeight: 'bold',
-    fontSize: 20,
-    color: '#333', // Darker text color
+  image: {
+    width: 100,
+    height: 100,
   },
-  animalSpecies: {
-    fontSize: 16,
-    color: '#555', // Slightly lighter text for species
+  cardContent: {
+    flex: 1,
+    padding: 10,
+    justifyContent: 'space-between',
   },
-  price: {
-    color: 'green',
+  name: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginTop: 8,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)', // Dark background for modal
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderRadius: 10,
-    width: '80%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
     color: '#333',
   },
-  input: {
-    height: 40,
-    borderColor: '#ddd', // Light border color
-    borderWidth: 1,
-    marginBottom: 15,
-    paddingLeft: 10,
-    borderRadius: 5,
-    backgroundColor: '#f9f9f9', // Lighter background for inputs
+  species: {
+    fontSize: 14,
+    color: '#666',
+    marginVertical: 4,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'green',
+  },
+  cartButton: {
+    backgroundColor: '#ffa500',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  cartButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
-
-export default MarketScreen;

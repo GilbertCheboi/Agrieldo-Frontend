@@ -12,50 +12,23 @@ import {
   Animated,
   Easing,
   Image,
-  Platform,
 } from 'react-native';
 import axios from 'axios';
 import {useNavigation} from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {launchImageLibrary} from 'react-native-image-picker';
-
-// Stub for audio recording if module is not installed
-const AudioRecord = Platform.select({
-  ios: {start: () => {}, stop: () => Promise.resolve('')},
-  android: {start: () => {}, stop: () => Promise.resolve('')},
-});
+import {askChatGPTDB} from '../utils/api';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const ChatGPT = () => {
   const navigation = useNavigation();
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
+
   const animValues = useRef({}).current;
-  const [recording, setRecording] = useState(false);
-  const [showRecordingIndicator, setShowRecordingIndicator] = useState(false);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current; // 👈 for welcome animation
 
-  // Pulse animation for recording indicator
-  useEffect(() => {
-    if (showRecordingIndicator) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.3,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ]),
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
-    }
-  }, [showRecordingIndicator]);
-
+  // Animate new messages
   useEffect(() => {
     messages.forEach(msg => {
       if (!animValues[msg.id]) {
@@ -70,6 +43,30 @@ const ChatGPT = () => {
     });
   }, [messages]);
 
+  // Animate welcome placeholder
+  useEffect(() => {
+    if (messages.length === 0) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 1000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+    } else {
+      pulseAnim.stopAnimation();
+    }
+  }, [messages]);
+
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const onPressIn = () =>
     Animated.spring(scaleAnim, {toValue: 0.9, useNativeDriver: true}).start();
@@ -81,15 +78,39 @@ const ChatGPT = () => {
       useNativeDriver: true,
     }).start();
 
-  const handleSendText = () => {
+  const handleSendText = async () => {
     if (!input.trim()) return;
-    const id = Date.now().toString();
-    setMessages(prev => [
-      ...prev,
-      {id, text: input, sender: 'user', type: 'text'},
-    ]);
+    const userMessage = {
+      id: Date.now().toString(),
+      text: input,
+      sender: 'user',
+      type: 'text',
+    };
+    setMessages(prev => [...prev, userMessage]);
+    const prompt = input;
     setInput('');
-    // TODO: call API to send text
+
+    try {
+      const res = await askChatGPTDB(prompt);
+      const aiMessage = {
+        id: Date.now().toString() + '-ai',
+        text: res.data.result
+          ? JSON.stringify(res.data.result, null, 2)
+          : res.data.error || 'No response',
+        sender: 'assistant',
+        type: 'text',
+      };
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error(error);
+      const errorMessage = {
+        id: Date.now().toString() + '-error',
+        text: 'Error contacting assistant',
+        sender: 'assistant',
+        type: 'text',
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    }
   };
 
   const handleImagePick = () => {
@@ -103,25 +124,6 @@ const ChatGPT = () => {
       ]);
       // TODO: upload image to API
     });
-  };
-
-  const toggleRecording = () => {
-    if (!recording) {
-      setRecording(true);
-      setShowRecordingIndicator(true);
-      AudioRecord.start();
-    } else {
-      AudioRecord.stop().then(file => {
-        setRecording(false);
-        setShowRecordingIndicator(false);
-        const id = Date.now().toString();
-        setMessages(prev => [
-          ...prev,
-          {id, audio: file, sender: 'user', type: 'audio'},
-        ]);
-        // TODO: upload audio to API
-      });
-    }
   };
 
   const renderItem = ({item}) => {
@@ -157,41 +159,33 @@ const ChatGPT = () => {
         {item.type === 'image' && (
           <Image source={{uri: item.uri}} style={styles.image} />
         )}
-        {item.type === 'audio' && (
-          <Text style={styles.messageText}>🔊 Voice Message</Text>
-        )}
       </Animated.View>
     );
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Recording Indicator */}
-      {showRecordingIndicator && (
-        <View style={styles.recordingBanner}>
-          <Animated.View
-            style={[styles.pulseDot, {transform: [{scale: pulseAnim}]}]}
+      <SafeAreaView style={styles.container}>
+        {messages.length === 0 ? (
+          <View style={styles.welcomeContainer}>
+            <Animated.View style={{transform: [{scale: pulseAnim}]}}>
+              <Ionicons name="chatbubble-outline" size={64} color="#ffa500" />
+            </Animated.View>
+            <Text style={styles.welcomeText}>Ask me anything...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={messages}
+            keyExtractor={item => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={{paddingVertical: 16}}
           />
-          <Text style={styles.recordingText}>Recording...</Text>
-        </View>
-      )}
-      <FlatList
-        data={messages}
-        keyExtractor={item => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={{paddingVertical: 16}}
-      />
+        )}
+      </SafeAreaView>
 
       <View style={styles.inputRow}>
         <TouchableOpacity style={styles.iconButton} onPress={handleImagePick}>
           <Icon name="camera-alt" size={24} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.iconButton} onPress={toggleRecording}>
-          <Icon
-            name={recording ? 'stop' : 'mic'}
-            size={24}
-            color={recording ? '#ff3b30' : '#000'}
-          />
         </TouchableOpacity>
         <TextInput
           style={styles.input}
@@ -210,42 +204,24 @@ const ChatGPT = () => {
           </TouchableOpacity>
         </Animated.View>
       </View>
-
-      <TouchableOpacity
-        style={styles.loginLink}
-        onPress={() => navigation.navigate('Login')}>
-        <Icon name="login" size={16} color="#007AFF" />
-        <Text style={styles.loginText}>Login</Text>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  recordingBanner: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#333',
-    paddingVertical: 6,
-    zIndex: 10,
-  },
-  pulseDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#ff3b30',
-    marginRight: 8,
-  },
-  recordingText: {
-    color: '#fff',
-    fontSize: 14,
-  },
   container: {flex: 1, backgroundColor: '#fafafa'},
+  welcomeContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  welcomeText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#999',
+    textAlign: 'center',
+  },
+
   message: {
     margin: 8,
     padding: 12,
@@ -282,13 +258,6 @@ const styles = StyleSheet.create({
     padding: 10,
     marginLeft: 4,
   },
-  loginLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 12,
-  },
-  loginText: {color: '#007AFF', marginLeft: 4, textDecorationLine: 'underline'},
 });
 
 export default ChatGPT;

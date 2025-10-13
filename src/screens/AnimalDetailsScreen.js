@@ -1,16 +1,24 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import axios from 'axios';
-import { useRoute } from '@react-navigation/native';
+import {useRoute} from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import jwt_decode from 'jwt-decode';
 
 const axiosInstance = axios.create({
-  baseURL: 'http://104.248.23.245/',
+  baseURL: 'http://192.168.100.4:8000/',
 });
 
 // Function to check if token is expired
-const isTokenExpired = (token) => {
+const isTokenExpired = token => {
   if (!token) return true;
   try {
     const decodedToken = jwt_decode(token);
@@ -25,9 +33,12 @@ const isTokenExpired = (token) => {
 const refreshAccessToken = async () => {
   const refreshToken = await AsyncStorage.getItem('refresh_token');
   try {
-    const response = await axios.post('http://104.248.23.245/api/accounts/api/token/refresh/', {
-      refresh: refreshToken,
-    });
+    const response = await axios.post(
+      'http://192.168.100.4:8000/api/accounts/api/token/refresh/',
+      {
+        refresh: refreshToken,
+      },
+    );
     await AsyncStorage.setItem('access_token', response.data.access);
     return response.data.access;
   } catch (error) {
@@ -38,7 +49,7 @@ const refreshAccessToken = async () => {
 
 // Axios request interceptor
 axiosInstance.interceptors.request.use(
-  async (config) => {
+  async config => {
     let token = await AsyncStorage.getItem('access_token');
     if (isTokenExpired(token)) {
       token = await refreshAccessToken();
@@ -46,14 +57,14 @@ axiosInstance.interceptors.request.use(
     config.headers['Authorization'] = `Bearer ${token}`;
     return config;
   },
-  (error) => {
+  error => {
     return Promise.reject(error);
-  }
+  },
 );
 
 const AnimalDetailsScreen = () => {
   const route = useRoute();
-  const { animalId } = route.params;
+  const {animalId} = route.params;
 
   const [animalDetails, setAnimalDetails] = useState(null);
   const [medicalHistory, setMedicalHistory] = useState([]);
@@ -62,14 +73,24 @@ const AnimalDetailsScreen = () => {
   useEffect(() => {
     const fetchAnimalDetails = async () => {
       try {
-        const animalResponse = await axiosInstance.get(`api/animals/dairy-cows/${animalId}/`);
+        const animalResponse = await axiosInstance.get(
+          `api/animals/dairy-cows/${animalId}/`,
+        );
         setAnimalDetails(animalResponse.data);
 
-        const historyResponse = await axiosInstance.get(`api/animals/dairy-cows/${animalId}/medical-records/`);
+        const historyResponse = await axiosInstance.get(
+          `api/animals/dairy-cows/${animalId}/medical-records/`,
+        );
         setMedicalHistory(historyResponse.data);
       } catch (error) {
-        console.error('Failed to fetch animal details or medical history:', error);
-        Alert.alert('Error', 'Failed to fetch animal details or medical history');
+        console.error(
+          'Failed to fetch animal details or medical history:',
+          error,
+        );
+        Alert.alert(
+          'Error',
+          'Failed to fetch animal details or medical history',
+        );
       } finally {
         setLoading(false);
       }
@@ -89,7 +110,9 @@ const AnimalDetailsScreen = () => {
   if (!animalDetails) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>No details available for this animal.</Text>
+        <Text style={styles.errorText}>
+          No details available for this animal.
+        </Text>
       </View>
     );
   }
@@ -97,17 +120,19 @@ const AnimalDetailsScreen = () => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       {animalDetails.image && (
-        <Image source={{ uri: animalDetails.image }} style={styles.animalImage} />
+        <Image source={{uri: animalDetails.image}} style={styles.animalImage} />
       )}
       <Text style={styles.animalName}>{animalDetails.name}</Text>
       <Text style={styles.detailText}>Species: {animalDetails.species}</Text>
       <Text style={styles.detailText}>Age: {animalDetails.age}</Text>
-      <Text style={styles.detailText}>Gender: {animalDetails.gender === 'M' ? 'Male' : 'Female'}</Text>
+      <Text style={styles.detailText}>
+        Gender: {animalDetails.gender === 'M' ? 'Male' : 'Female'}
+      </Text>
 
       {/* Medical History Section */}
       <Text style={styles.sectionTitle}>Medical History</Text>
       {medicalHistory.length > 0 ? (
-        medicalHistory.map((record) => (
+        medicalHistory.map(record => (
           <View key={record.id} style={styles.medicalRecord}>
             <Text style={styles.recordText}>Date: {record.date}</Text>
             <Text style={styles.recordText}>Treatment: {record.treatment}</Text>

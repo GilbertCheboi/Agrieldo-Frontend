@@ -3,19 +3,14 @@
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.RECEIVE_SMS" />
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <!-- Define ACCESS_FINE_LOCATION if you will use enableHighAccuracy=true  -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
+    <!-- Define ACCESS_COARSE_LOCATION if you will use enableHighAccuracy=false  -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
 
     <application
@@ -31,11 +26,10 @@
         
  >
 
-
         <!-- Google Maps API Key -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="YOUR_GOOGLE_MAPS_API_KEY_HERE" />
+            android:value="AIzaSyARKqgKd7KvHTo-_x5UpcbwH08GUMy0_90" />
 
         <!-- Default Notification Channel ID -->
         <meta-data

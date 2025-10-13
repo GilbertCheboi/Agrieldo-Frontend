@@ -9,13 +9,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Feather';
 import styles from '../assets/styles/AccountScreenStyles.js';
-import EditModal from './modals/EditModal'; // Make sure EditModal.js is in the same folder
+import EditFarmModal from './modals/EditFarmModal.js';
 import AddFarmModal from './modals/AddFarmModal.js';
+import {updateFarm, deleteFarm} from '../utils/api.js';
 
 const AccountScreen = () => {
   const navigation = useNavigation();
@@ -31,7 +33,7 @@ const AccountScreen = () => {
     try {
       const token = await AsyncStorage.getItem('access_token');
       const response = await axios.get(
-        'https://api.agrieldo.com/api/farms/get_farms',
+        ' http://192.168.100.4:8000/api/farms/get_farms',
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -46,21 +48,16 @@ const AccountScreen = () => {
     }
   };
 
-  const updateFarm = async updatedFarm => {
+  const handleDelete = async id => {
     try {
-      const token = await AsyncStorage.getItem('access_token');
-      await axios.patch(
-        `https://api.agrieldo.com/api/farms/${updatedFarm.id}/`,
-        updatedFarm,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-      fetchFarms(); // Refresh the list
-    } catch (error) {
-      console.error('Error updating farm:', error);
+      await deleteFarm(id);
+      Alert.alert('Success', 'Farm deleted successfully');
+      // Refresh your list after delete
+      fetchFarms();
+    } catch (err) {
+      console.error('Delete failed:', err);
+      logErrorToFile(err);
+      Alert.alert('Error', 'Failed to delete farm. Please try again.');
     }
   };
 
@@ -76,96 +73,271 @@ const AccountScreen = () => {
     );
   }
 
+  // return (
+  //   <>
+  //     <ScrollView style={styles.container}>
+  //       {farms.map((farm, index) => (
+  //         <TouchableOpacity
+  //           key={farm.id || index}
+  //           style={styles.cameraContainer}
+  //           activeOpacity={0.9}
+  //           onPress={() =>
+  //             navigation.navigate('FarmDashboard', {farmId: farm.id})
+  //           }>
+  //           {/* Title + Settings */}
+  //           <View style={styles.nameAndStatus}>
+  //             <Text style={styles.cameraTitle}>
+  //               {farm.name || `Farm ${index + 1}`}
+  //             </Text>
+
+  //             <Text style={styles.cameraTitle}>{farm.type || `Dairy`}</Text>
+
+  //             {/* Prevent settings icon from triggering parent onPress */}
+  //             <TouchableOpacity
+  //               onPress={e => {
+  //                 e.stopPropagation(); // ✅ prevent parent touch
+  //                 setActiveSettingsIndex(
+  //                   activeSettingsIndex === index ? null : index,
+  //                 );
+  //               }}>
+  //               <Icon name="settings" size={22} color="#ffa500" />
+  //             </TouchableOpacity>
+  //           </View>
+
+  //           {/* Image Feed */}
+  //           <View style={styles.videoContainer}>
+  //             <Image
+  //               source={
+  //                 farm.image
+  //                   ? {uri: ` http://192.168.100.4:8000${farm.image}`}
+  //                   : require('../assets/vinny.png')
+  //               }
+  //               style={styles.videoFeed}
+  //               resizeMode="cover"
+  //             />
+  //             <View style={styles.videoTextDisplay}>
+  //               <Text style={styles.videoText}>
+  //                 {farm.location || 'Farm Live Feed'}
+  //               </Text>
+
+  //               {/* Show real updated_at */}
+  //               <Text style={styles.lastUpdatedText}>
+  //                 {farm.updated_at
+  //                   ? `Updated: ${new Date(farm.updated_at).toLocaleString()}`
+  //                   : 'No updates yet'}
+  //               </Text>
+  //             </View>
+  //           </View>
+
+  //           {/* Settings Modal */}
+  //           {activeSettingsIndex === index && (
+  //             <View style={localStyles.settingsModal}>
+  //               <View
+  //                 style={[localStyles.statusBadge, localStyles.statusActive]}>
+  //                 <Text style={localStyles.statusText}>Active</Text>
+  //               </View>
+
+  //               <TouchableOpacity
+  //                 style={localStyles.modalItem}
+  //                 onPress={() => {
+  //                   fetchFarms();
+  //                   setActiveSettingsIndex(null);
+  //                 }}>
+  //                 <Icon name="refresh-ccw" size={18} color="#333" />
+  //                 <Text style={localStyles.modalText}>Refresh</Text>
+  //               </TouchableOpacity>
+
+  //               <TouchableOpacity
+  //                 style={localStyles.modalItem}
+  //                 onPress={() => {
+  //                   setSelectedFarm(farm);
+  //                   setEditModalVisible(true);
+  //                   setActiveSettingsIndex(null);
+  //                 }}>
+  //                 <Icon name="edit" size={18} color="#333" />
+  //                 <Text style={localStyles.modalText}>Edit Farm</Text>
+  //               </TouchableOpacity>
+
+  //               <TouchableOpacity
+  //                 style={localStyles.modalItem}
+  //                 onPress={() => {
+  //                   Alert.alert(
+  //                     'Confirm Delete',
+  //                     `Are you sure you want to delete ${farm.name}?`,
+  //                     [
+  //                       {text: 'Cancel', style: 'cancel'},
+  //                       {
+  //                         text: 'Delete',
+  //                         style: 'destructive',
+  //                         onPress: () => handleDelete(farm.id),
+  //                       },
+  //                     ],
+  //                   );
+  //                   setActiveSettingsIndex(null);
+  //                 }}>
+  //                 <Icon name="trash" size={18} color="red" />
+  //                 <Text style={[localStyles.modalText, {color: 'red'}]}>
+  //                   Delete
+  //                 </Text>
+  //               </TouchableOpacity>
+  //             </View>
+  //           )}
+  //         </TouchableOpacity>
+  //       ))}
+  //     </ScrollView>
+  //     {/* Floating + Button */}
+  //     <TouchableOpacity
+  //       style={localStyles.fab}
+  //       onPress={() => setAddModalVisible(true)}>
+  //       <Icon name="plus" size={28} color="#fff" />
+  //     </TouchableOpacity>
+
+  //     {/* Edit Modal */}
+  //     <EditFarmModal
+  //       visible={editModalVisible}
+  //       farm={selectedFarm}
+  //       onClose={() => setEditModalVisible(false)}
+  //       onUpdated={fetchFarms}
+  //     />
+
+  //     <AddFarmModal
+  //       visible={addModalVisible}
+  //       onClose={() => setAddModalVisible(false)}
+  //       onSave={newFarm => {
+  //         // just update the state locally with the newly created farm
+  //         setFarms(prev => [newFarm, ...prev]);
+  //         setAddModalVisible(false);
+  //       }}
+  //     />
+  //   </>
+  // );
+
   return (
     <>
-      <ScrollView style={styles.container}>
-        {farms.map((farm, index) => (
-          <TouchableOpacity
-            key={farm.id || index}
-            style={styles.cameraContainer}
-            activeOpacity={0.9}
-            onPress={() =>
-              navigation.navigate('FarmDashboard', {farmId: farm.id})
-            }>
-            {/* Title + Settings */}
-            <View style={styles.nameAndStatus}>
-              <Text style={styles.cameraTitle}>
-                {farm.name || `Farm ${index + 1}`}
-              </Text>
-
-              {/* Prevent settings icon from triggering parent onPress */}
-              <TouchableOpacity
-                onPress={e => {
-                  e.stopPropagation(); // ✅ prevent parent touch
-                  setActiveSettingsIndex(
-                    activeSettingsIndex === index ? null : index,
-                  );
-                }}>
-                <Icon name="settings" size={22} color="#ffa500" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Image Feed */}
-            <View style={styles.videoContainer}>
-              <Image
-                source={require('../assets/vinny.png')}
-                style={styles.videoFeed}
-              />
-              <View style={styles.videoTextDisplay}>
-                <Text style={styles.videoText}>
-                  {farm.location || 'Farm Live Feed'}
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{flexGrow: 1}}>
+        {farms.length === 0 ? (
+          <View style={localStyles.emptyContainer}>
+            <Icon name="alert-circle" size={60} color="#ffa500" />
+            <Text style={localStyles.emptyText}>
+              You don’t have any farms yet.
+            </Text>
+            <Text style={localStyles.emptySubText}>
+              Tap the plus button in the bottom-right corner to add your first
+              farm.
+            </Text>
+          </View>
+        ) : (
+          farms.map((farm, index) => (
+            <TouchableOpacity
+              key={farm.id || index}
+              style={styles.cameraContainer}
+              activeOpacity={0.9}
+              onPress={() =>
+                navigation.navigate('FarmDashboard', {farmId: farm.id})
+              }>
+              {/* Title + Settings */}
+              <View style={styles.nameAndStatus}>
+                <Text style={styles.cameraTitle}>
+                  {farm.name || `Farm ${index + 1}`}
                 </Text>
-                <Text style={styles.lastUpdatedText}>
-                  Update: 2 minutes ago
-                </Text>
+
+                <Text style={styles.cameraTitle}>{farm.type || `Dairy`}</Text>
+
+                <TouchableOpacity
+                  onPress={e => {
+                    e.stopPropagation();
+                    setActiveSettingsIndex(
+                      activeSettingsIndex === index ? null : index,
+                    );
+                  }}>
+                  <Icon name="settings" size={22} color="#ffa500" />
+                </TouchableOpacity>
               </View>
-            </View>
 
-            {/* Settings Modal */}
-            {activeSettingsIndex === index && (
-              <View style={localStyles.settingsModal}>
-                <View
-                  style={[localStyles.statusBadge, localStyles.statusActive]}>
-                  <Text style={localStyles.statusText}>Active</Text>
-                </View>
-
-                <TouchableOpacity
-                  style={localStyles.modalItem}
-                  onPress={() => {
-                    fetchFarms();
-                    setActiveSettingsIndex(null);
-                  }}>
-                  <Icon name="refresh-ccw" size={18} color="#333" />
-                  <Text style={localStyles.modalText}>Refresh</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={localStyles.modalItem}
-                  onPress={() => {
-                    setSelectedFarm(farm);
-                    setEditModalVisible(true);
-                    setActiveSettingsIndex(null);
-                  }}>
-                  <Icon name="edit" size={18} color="#333" />
-                  <Text style={localStyles.modalText}>Edit Farm</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={localStyles.modalItem}
-                  onPress={() => {
-                    alert(`Delete ${farm.name}`);
-                    setActiveSettingsIndex(null);
-                  }}>
-                  <Icon name="trash" size={18} color="red" />
-                  <Text style={[localStyles.modalText, {color: 'red'}]}>
-                    Delete
+              {/* Image Feed */}
+              <View style={styles.videoContainer}>
+                <Image
+                  source={
+                    farm.image
+                      ? {uri: ` http://192.168.100.4:8000${farm.image}`}
+                      : require('../assets/vinny.png')
+                  }
+                  style={styles.videoFeed}
+                  resizeMode="cover"
+                />
+                <View style={styles.videoTextDisplay}>
+                  <Text style={styles.videoText}>
+                    {farm.location || 'Farm Live Feed'}
                   </Text>
-                </TouchableOpacity>
+
+                  <Text style={styles.lastUpdatedText}>
+                    {farm.updated_at
+                      ? `Updated: ${new Date(farm.updated_at).toLocaleString()}`
+                      : 'No updates yet'}
+                  </Text>
+                </View>
               </View>
-            )}
-          </TouchableOpacity>
-        ))}
+
+              {/* Settings Modal */}
+              {activeSettingsIndex === index && (
+                <View style={localStyles.settingsModal}>
+                  <View
+                    style={[localStyles.statusBadge, localStyles.statusActive]}>
+                    <Text style={localStyles.statusText}>Active</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={localStyles.modalItem}
+                    onPress={() => {
+                      fetchFarms();
+                      setActiveSettingsIndex(null);
+                    }}>
+                    <Icon name="refresh-ccw" size={18} color="#333" />
+                    <Text style={localStyles.modalText}>Refresh</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={localStyles.modalItem}
+                    onPress={() => {
+                      setSelectedFarm(farm);
+                      setEditModalVisible(true);
+                      setActiveSettingsIndex(null);
+                    }}>
+                    <Icon name="edit" size={18} color="#333" />
+                    <Text style={localStyles.modalText}>Edit Farm</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={localStyles.modalItem}
+                    onPress={() => {
+                      Alert.alert(
+                        'Confirm Delete',
+                        `Are you sure you want to delete ${farm.name}?`,
+                        [
+                          {text: 'Cancel', style: 'cancel'},
+                          {
+                            text: 'Delete',
+                            style: 'destructive',
+                            onPress: () => handleDelete(farm.id),
+                          },
+                        ],
+                      );
+                      setActiveSettingsIndex(null);
+                    }}>
+                    <Icon name="trash" size={18} color="red" />
+                    <Text style={[localStyles.modalText, {color: 'red'}]}>
+                      Delete
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
+
       {/* Floating + Button */}
       <TouchableOpacity
         style={localStyles.fab}
@@ -174,27 +346,19 @@ const AccountScreen = () => {
       </TouchableOpacity>
 
       {/* Edit Modal */}
-      <EditModal
+      <EditFarmModal
         visible={editModalVisible}
         farm={selectedFarm}
         onClose={() => setEditModalVisible(false)}
-        onSave={updateFarm}
+        onUpdated={fetchFarms}
       />
+
       <AddFarmModal
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
-        onSave={async newFarm => {
-          try {
-            const token = await AsyncStorage.getItem('access_token');
-            await axios.post('https://api.agrieldo.com/api/farms/', newFarm, {
-              headers: {Authorization: `Bearer ${token}`},
-            });
-            setAddModalVisible(false);
-            fetchFarms();
-          } catch (error) {
-            console.error('Error adding farm:', error);
-            alert('Failed to add farm');
-          }
+        onSave={newFarm => {
+          setFarms(prev => [newFarm, ...prev]);
+          setAddModalVisible(false);
         }}
       />
     </>
@@ -259,5 +423,24 @@ const localStyles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.3,
     shadowRadius: 3,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginTop: 15,
+    textAlign: 'center',
+  },
+  emptySubText: {
+    fontSize: 14,
+    color: '#666',
+    marginTop: 5,
+    textAlign: 'center',
   },
 });

@@ -282,6 +282,7 @@ const ViewAnimalsScreen = ({route}) => {
                       name={item.icon}
                       size={18}
                       color={item.key === 'sickCows' ? 'red' : '#ffa500'}
+                      onLayout={() => console.log('Rendering icon:', item.icon)}
                     />
                     <Text style={styles.cardTitle}> {item.label}</Text>
                   </View>

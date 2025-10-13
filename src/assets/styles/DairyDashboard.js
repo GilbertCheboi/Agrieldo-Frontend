@@ -42,6 +42,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 16,
     marginBottom: 16,
+    marginTop: 28,
     elevation: 2,
   },
   feedVsMilkCard: {
@@ -68,12 +69,12 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#06a83cff',
     marginBottom: 4,
   },
   subText: {
     fontSize: 14,
-    color: '#555',
+    color: '#fff',
   },
 });
 
