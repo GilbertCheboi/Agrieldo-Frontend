@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Switch,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -21,15 +22,25 @@ const HealthRecordModal = ({
   onSave,
 }) => {
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const handleChange = (name, value) => {
     setHealthForm(prev => ({...prev, [name]: value}));
   };
 
   const handleConfirm = date => {
-    const formatted = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    const formatted = date.toISOString().split('T')[0];
     handleChange('date', formatted);
     setDatePickerVisibility(false);
+  };
+
+  const handleSavePress = async () => {
+    try {
+      setSaving(true);
+      await onSave(); // awaits parent API call
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -58,20 +69,24 @@ const HealthRecordModal = ({
               onCancel={() => setDatePickerVisibility(false)}
             />
 
-            {/* Rest of form inputs */}
+            {/* Inputs */}
             <TextInput
               placeholder="Type"
+              placeholderTextColor="#888"
               value={healthForm?.type}
               onChangeText={text => handleChange('type', text)}
               style={styles.input}
             />
+
             <TextInput
               placeholder="Details"
+              placeholderTextColor="#888"
               value={healthForm?.details}
               onChangeText={text => handleChange('details', text)}
               style={styles.input}
               multiline
             />
+
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Is Sick?</Text>
               <Switch
@@ -79,45 +94,61 @@ const HealthRecordModal = ({
                 onValueChange={val => handleChange('is_sick', val)}
               />
             </View>
+
             <TextInput
               placeholder="Clinical Signs"
+              placeholderTextColor="#888"
               value={healthForm?.clinical_signs}
               onChangeText={text => handleChange('clinical_signs', text)}
               style={styles.input}
               multiline
             />
+
             <TextInput
               placeholder="Diagnosis"
+              placeholderTextColor="#888"
               value={healthForm?.diagnosis}
               onChangeText={text => handleChange('diagnosis', text)}
               style={styles.input}
               multiline
             />
+
             <TextInput
               placeholder="Treatment"
+              placeholderTextColor="#888"
               value={healthForm?.treatment}
               onChangeText={text => handleChange('treatment', text)}
               style={styles.input}
               multiline
             />
+
             <TextInput
               placeholder="Cost (Ksh)"
+              placeholderTextColor="#888"
               value={healthForm?.cost?.toString()}
               onChangeText={text => handleChange('cost', text)}
               style={styles.input}
               keyboardType="numeric"
             />
 
+            {/* Buttons */}
             <View style={styles.buttonRow}>
               <TouchableOpacity
                 style={[styles.button, styles.cancelButton]}
-                onPress={onClose}>
-                <Text style={styles.buttonText}>Cancel</Text>
+                onPress={onClose}
+                disabled={saving}>
+                <Text style={[styles.buttonText, {color: '#333'}]}>Cancel</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={[styles.button, styles.saveButton]}
-                onPress={onSave}>
-                <Text style={styles.buttonText}>Save</Text>
+                onPress={handleSavePress}
+                disabled={saving}>
+                {saving ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.buttonText}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           </ScrollView>
@@ -126,6 +157,8 @@ const HealthRecordModal = ({
     </Modal>
   );
 };
+
+export default HealthRecordModal;
 
 const styles = StyleSheet.create({
   modalOverlay: {
@@ -158,7 +191,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     marginLeft: 8,
-    color: '#333',
+    color: '#000',
   },
   input: {
     borderColor: '#ccc',
@@ -167,6 +200,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 12,
     fontSize: 14,
+    color: '#000',
   },
   switchRow: {
     flexDirection: 'row',
@@ -201,5 +235,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
-export default HealthRecordModal;

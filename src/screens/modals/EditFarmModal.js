@@ -21,14 +21,14 @@ const EditFarmModal = ({visible, onClose, farm, onUpdated}) => {
   const [farmImage, setFarmImage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // preload farm data when modal opens
+  // Preload farm data when modal opens
   useEffect(() => {
     if (farm) {
       setFarmName(farm.name || '');
       setFarmLocation(farm.location || '');
       setFarmType(farm.type || 'Dairy');
       if (farm.image) {
-        setFarmImage({uri: ` http://192.168.100.4:8000${farm.image}`}); // preload existing image
+        setFarmImage({uri: `http://api.agrieldo.com${farm.image}`}); // preload existing image
       }
     }
   }, [farm]);
@@ -40,7 +40,7 @@ const EditFarmModal = ({visible, onClose, farm, onUpdated}) => {
     });
 
     if (!result.didCancel && result.assets?.length > 0) {
-      setFarmImage(result.assets[0]); // replace preview immediately
+      setFarmImage(result.assets[0]); // Replace preview immediately
     }
   };
 
@@ -65,16 +65,10 @@ const EditFarmModal = ({visible, onClose, farm, onUpdated}) => {
         });
       }
 
-      // update farm
       await updateFarm(farm.id, formData);
-
-      // show success
       Alert.alert('Success', 'Farm updated successfully');
 
-      // refresh list on AccountScreen
       if (onUpdated) onUpdated();
-
-      // close modal
       onClose();
     } catch (error) {
       console.error('Failed to update farm:', error);
@@ -98,33 +92,40 @@ const EditFarmModal = ({visible, onClose, farm, onUpdated}) => {
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Edit Farm</Text>
 
+          {/* Farm Name */}
           <TextInput
             style={styles.input}
             placeholder="Farm Name"
+            placeholderTextColor="#888"
             value={farmName}
             onChangeText={setFarmName}
           />
+
+          {/* Farm Location */}
           <TextInput
             style={styles.input}
             placeholder="Location"
+            placeholderTextColor="#888"
             value={farmLocation}
             onChangeText={setFarmLocation}
           />
 
-          {/* Dropdown for type */}
+          {/* Farm Type Picker */}
           <View style={styles.pickerContainer}>
             <Text style={styles.label}>Farm Type</Text>
-            <Picker
-              selectedValue={farmType}
-              onValueChange={setFarmType}
-              style={styles.picker}>
-              <Picker.Item label="Dairy" value="Dairy" />
-              <Picker.Item label="Sheep" value="Sheep" />
-              <Picker.Item label="Crop" value="Crop" />
-            </Picker>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={farmType}
+                onValueChange={setFarmType}
+                style={styles.picker}>
+                <Picker.Item label="Dairy" value="Dairy" />
+                <Picker.Item label="Sheep" value="Sheep" />
+                <Picker.Item label="Crop" value="Crop" />
+              </Picker>
+            </View>
           </View>
 
-          {/* Image upload */}
+          {/* Image Upload */}
           <TouchableOpacity
             style={styles.imageButton}
             onPress={handlePickImage}>
@@ -132,10 +133,12 @@ const EditFarmModal = ({visible, onClose, farm, onUpdated}) => {
               {farmImage ? 'Change Image' : 'Upload Farm Image'}
             </Text>
           </TouchableOpacity>
+
           {farmImage && (
             <Image source={{uri: farmImage.uri}} style={styles.previewImage} />
           )}
 
+          {/* Action Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity
               style={styles.cancelButton}
@@ -166,16 +169,16 @@ export default EditFarmModal;
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContainer: {
-    width: '90%',
+    width: '92%',
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 20,
-    elevation: 5,
+    elevation: 6,
   },
   modalTitle: {
     fontSize: 22,
@@ -185,37 +188,48 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   input: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    marginBottom: 20,
-    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
     fontSize: 16,
+    color: '#000', // ✅ ensures visible text
   },
   pickerContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
     fontSize: 14,
     fontWeight: '500',
-    marginBottom: 5,
+    marginBottom: 6,
+    color: '#333',
   },
-  picker: {
+  pickerWrapper: {
     borderWidth: 1,
     borderColor: '#ccc',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  picker: {
+    color: '#000', // ✅ ensures visible text in dropdown
   },
   imageButton: {
     backgroundColor: '#ffa500',
-    padding: 10,
+    padding: 12,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   imageButtonText: {
     color: '#fff',
     textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '600',
   },
   previewImage: {
     width: '100%',
-    height: 150,
+    height: 160,
     borderRadius: 8,
     marginBottom: 10,
   },
@@ -225,7 +239,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   cancelButton: {
-    backgroundColor: 'rgba(128,128,128,0.2)',
+    backgroundColor: '#eee',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,

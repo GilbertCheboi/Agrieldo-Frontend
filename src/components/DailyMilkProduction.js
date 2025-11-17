@@ -1,20 +1,22 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import {LineChart} from 'react-native-gifted-charts';
 
-// Get today's date in 'YYYY-MM-DD' format
-const getTodayDate = () => {
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
+const {width} = Dimensions.get('window');
+
+// Normalize date (for sorting and labeling)
+const normalizeDate = dateStr => {
+  if (!dateStr) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  const d = new Date(`${dateStr} ${new Date().getFullYear()}`);
+  return isNaN(d) ? dateStr : d.toISOString().split('T')[0];
 };
 
 const DailyMilkProduction = ({
@@ -24,13 +26,27 @@ const DailyMilkProduction = ({
   setMilkForm,
   handleEditMilk,
   canEdit = false,
+  darkMode = false,
 }) => {
-  const today = getTodayDate();
+  // Prepare chart data: sum milk_yield per date
+  const chartData = useMemo(() => {
+    const grouped = records.reduce((acc, record) => {
+      const date = normalizeDate(record.date);
+      if (!acc[date]) acc[date] = 0;
+      acc[date] += Number(record.milk_yield) || 0;
+      return acc;
+    }, {});
 
-  // Filter for today's records
-  const todayRecords = records.filter(record => record.date === today);
+    return Object.entries(grouped)
+      .sort((a, b) => new Date(a[0]) - new Date(b[0]))
+      .map(([date, value]) => ({
+        value,
+        label: date.split('-').slice(1).join('-'), // "MM-DD"
+      }));
+  }, [records]);
 
   const handleAdd = () => {
+    const today = new Date().toISOString().split('T')[0];
     setIsEditingMilk(false);
     setMilkForm({
       date: today,
@@ -46,59 +62,51 @@ const DailyMilkProduction = ({
   };
 
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>Daily Milk Production - {today}</Text>
+    <View
+      style={[styles.card, {backgroundColor: darkMode ? '#1e1e1e' : '#fff'}]}>
+      <Text style={[styles.title, {color: darkMode ? '#fff' : '#1a3c34'}]}>
+        Daily Milk Production
+      </Text>
 
-      {todayRecords.length === 0 ? (
-        <Text style={styles.noRecords}>No records for today.</Text>
+      {chartData.length === 0 ? (
+        <Text style={styles.noData}>No production data available.</Text>
       ) : (
-        <ScrollView>
-          {todayRecords.map((record, index) => (
-            <View key={index} style={styles.recordItem}>
-              {canEdit && (
-                <TouchableOpacity
-                  onPress={() => handleEditMilk(record)}
-                  style={styles.editIcon}>
-                  <Icon name="pencil" size={16} color="#fff" />
-                </TouchableOpacity>
-              )}
-              <View style={styles.recordText}>
-                <Text style={styles.recordLine}>
-                  🕒 Session - {record.session}
-                </Text>
-                <Text style={styles.recordLine}>
-                  <Text style={styles.key}>Yield (L): </Text>
-                  {record.milk_yield}
-                </Text>
-                <Text style={styles.recordLine}>
-                  <Text style={styles.key}>Price (per L): </Text>
-                  {record.milk_price_per_liter}
-                </Text>
-                <Text style={styles.recordLine}>
-                  <Text style={styles.key}>Feed Consumed (kg): </Text>
-                  {record.feed_consumption}
-                </Text>
-                <Text style={styles.recordLine}>
-                  <Text style={styles.key}>SCC: </Text>
-                  {record.scc}
-                </Text>
-                <Text style={styles.recordLine}>
-                  <Text style={styles.key}>Fat %: </Text>
-                  {record.fat_percentage}
-                </Text>
-                <Text style={styles.recordLine}>
-                  <Text style={styles.key}>Protein %: </Text>
-                  {record.protein_percentage}
-                </Text>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
+        <View style={styles.chartWrapper}>
+          <LineChart
+            areaChart
+            data={chartData}
+            curved
+            hideDataPoints={false}
+            color1="#ffa500"
+            startFillColor="#ffa500"
+            endFillColor={darkMode ? '#1e1e1e' : '#fff'}
+            startOpacity={0.6}
+            endOpacity={0.1}
+            yAxisColor={darkMode ? '#fff' : '#000'}
+            xAxisColor={darkMode ? '#fff' : '#000'}
+            yAxisTextStyle={{
+              color: darkMode ? '#ccc' : '#555',
+              fontSize: 10,
+            }}
+            xAxisLabelTextStyle={{
+              color: darkMode ? '#ccc' : '#555',
+              fontSize: 9,
+              rotation: 30,
+            }}
+            thickness={2}
+            height={220}
+            width={width - 40}
+            hideRules={false}
+            hideAxesAndRules={false}
+            yAxisLabelWidth={30}
+            yAxisOffset={0}
+          />
+        </View>
       )}
 
       {canEdit && (
         <TouchableOpacity onPress={handleAdd} style={styles.fab}>
-          <Icon name="plus" size={20} color="#fff" />
+          <Icon name="plus" size={22} color="#fff" />
         </TouchableOpacity>
       )}
     </View>
@@ -108,9 +116,8 @@ const DailyMilkProduction = ({
 const styles = StyleSheet.create({
   card: {
     marginTop: 16,
-    backgroundColor: '#fff',
-    padding: 12,
     borderRadius: 10,
+    padding: 12,
     elevation: 3,
     position: 'relative',
     marginBottom: 60,
@@ -118,38 +125,12 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: 'bold',
     fontSize: 16,
-    marginBottom: 12,
-    color: '#1a3c34',
+    marginBottom: 10,
   },
-  recordItem: {
-    marginBottom: 12,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 6,
-    backgroundColor: '#f9f9f9',
-    position: 'relative',
-  },
-  recordText: {
-    marginBottom: 6,
-  },
-  recordLine: {
-    fontSize: 13,
-    color: '#444',
-    marginBottom: 2,
-  },
-  key: {
-    fontWeight: 'bold',
-    color: '#ffa500',
-  },
-  editIcon: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    padding: 4,
-    backgroundColor: '#ffa500',
-    borderRadius: 4,
-    zIndex: 1,
+  chartWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 6,
   },
   fab: {
     position: 'absolute',
@@ -157,17 +138,17 @@ const styles = StyleSheet.create({
     right: 10,
     backgroundColor: '#ffa500',
     borderRadius: 20,
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 5,
   },
-  noRecords: {
+  noData: {
     textAlign: 'center',
     color: '#999',
     fontStyle: 'italic',
-    marginVertical: 10,
+    marginTop: 20,
   },
 });
 

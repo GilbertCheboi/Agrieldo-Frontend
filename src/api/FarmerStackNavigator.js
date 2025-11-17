@@ -19,6 +19,7 @@ import AddIncome from '../screens/AddIncome';
 import AllAnimalsScreen from '../screens/AllAnimalsScreen';
 import AddPostScreen from '../screens/AddPostScreen';
 import AnimalDetailsScreen from '../screens/AnimalDetailsScreen';
+import ProductionHistoryScreen from '../screens/ProductionHistoryScreen';
 
 const Stack = createStackNavigator();
 
@@ -33,11 +34,11 @@ const FarmerStackNavigator = () => (
       cardStyle: {backgroundColor: '#fff'}, // Set background color for all stack screens
     }}>
     {/* FarmerTabNavigator is the initial screen */}
-    <Stack.Screen
+    {/* <Stack.Screen
       name="FarmerTabNavigator"
       component={FarmerTabNavigator} // TabNavigator will be shown here
       options={{headerShown: false}} // Hide the header when inside tab navigator
-    />
+    /> */}
 
     {/* Other screens in the stack that will be pushed on top of the TabNavigator */}
     <Stack.Screen

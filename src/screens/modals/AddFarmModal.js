@@ -217,12 +217,14 @@ const AddFarmModal = ({visible, onClose, onSave}) => {
           <TextInput
             style={styles.input}
             placeholder="Farm Name"
+            placeholderTextColor="#221f1fff" // 👈 lighter gray for contrast
             value={farmName}
             onChangeText={setFarmName}
           />
           <TextInput
             style={styles.input}
             placeholder="Location (optional)"
+            placeholderTextColor="#201d1dff"
             value={farmLocation}
             onChangeText={setFarmLocation}
           />
@@ -233,7 +235,8 @@ const AddFarmModal = ({visible, onClose, onSave}) => {
             <Picker
               selectedValue={farmType}
               onValueChange={setFarmType}
-              style={styles.picker}>
+              style={[styles.picker, {color: '#333'}]} // 👈 ensures text is visible
+            >
               <Picker.Item label="Dairy" value="Dairy" />
               <Picker.Item label="Sheep" value="Sheep" />
               <Picker.Item label="Crop" value="Crop" />
@@ -296,6 +299,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingVertical: 8,
     fontSize: 16,
+    color: '#333',
   },
   pickerContainer: {
     marginBottom: 20,

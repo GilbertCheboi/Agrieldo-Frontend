@@ -19,7 +19,7 @@ import {launchImageLibrary} from 'react-native-image-picker';
 
 // Set up axios instance
 const axiosInstance = axios.create({
-  baseURL: 'http://192.168.100.4:8000/',
+  baseURL: 'http://api.agrieldo.com/',
 });
 
 // Function to check if token is expired
@@ -39,7 +39,7 @@ const refreshAccessToken = async () => {
   const refreshToken = await AsyncStorage.getItem('refresh_token');
 
   const response = await axios.post(
-    'http://192.168.100.4:8000/api/accounts/api/token/refresh/',
+    'http://api.agrieldo.com/api/accounts/api/token/refresh/',
     {
       refresh: refreshToken,
     },

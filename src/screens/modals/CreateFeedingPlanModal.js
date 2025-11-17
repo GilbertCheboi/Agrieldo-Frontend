@@ -1,4 +1,3 @@
-// components/CreateFeedingPlanModal.js
 import React, {useEffect, useState} from 'react';
 import {
   Modal,
@@ -11,41 +10,51 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  useColorScheme,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-
 import {Picker} from '@react-native-picker/picker';
 import {getFeeds, createFeedingPlan} from '../../utils/api';
 
-const CreateFeedingPlanModal = ({visible, onClose, onPlanCreated}) => {
+const CreateFeedingPlanModal = ({visible, onClose, onPlanCreated, storeId}) => {
+  const colorScheme = useColorScheme();
+  const textColor = colorScheme === 'dark' ? '#fff' : '#000';
+  const backgroundColor = colorScheme === 'dark' ? '#333' : '#fff';
+
   const [formData, setFormData] = useState({
     name: '',
-    items: [{feed_id: '', quantity_per_animal: ''}],
+    items: [{feed: '', quantity_per_animal: ''}],
   });
   const [feeds, setFeeds] = useState([]);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 🔸 Fetch feeds for selected store
   useEffect(() => {
-    const fetchFeeds = async () => {
+    const fetchFeedsForStore = async () => {
+      if (!storeId) return;
       setLoading(true);
       try {
-        const data = await getFeeds();
+        const data = await getFeeds(storeId); // expects API endpoint ?store=storeId
         setFeeds(data || []);
       } catch (err) {
         console.error('Error fetching feeds:', err);
-        setError('Failed to load feeds');
+        setError('Failed to load feeds for this store.');
       } finally {
         setLoading(false);
       }
     };
-    if (visible) fetchFeeds();
-  }, [visible]);
 
+    if (visible) fetchFeedsForStore();
+  }, [visible, storeId]);
+
+  // 🔸 Reset form when modal closes
   useEffect(() => {
     if (!visible) {
       setMessage('');
+      setError('');
+      setFormData({name: '', items: [{feed: '', quantity_per_animal: ''}]});
     }
   }, [visible]);
 
@@ -64,7 +73,7 @@ const CreateFeedingPlanModal = ({visible, onClose, onPlanCreated}) => {
   const addItem = () => {
     setFormData({
       ...formData,
-      items: [...formData.items, {feed_id: '', quantity_per_animal: ''}],
+      items: [...formData.items, {feed: '', quantity_per_animal: ''}],
     });
   };
 
@@ -78,36 +87,46 @@ const CreateFeedingPlanModal = ({visible, onClose, onPlanCreated}) => {
     setMessage('');
     setError('');
 
+    if (!storeId) {
+      setError('Please select a store before creating a plan.');
+      return;
+    }
+
     const dataToSend = {
       name: formData.name,
+      store: storeId, // ✅ backend expects "store"
       items: formData.items.map(item => ({
-        feed_id: item.feed_id,
-        quantity_per_animal: item.quantity_per_animal,
+        feed: item.feed, // ✅ backend expects "feed"
+        quantity_per_animal: parseFloat(item.quantity_per_animal),
       })),
     };
 
-    if (!dataToSend.name) {
-      setError('Plan name is required');
+    if (!dataToSend.name.trim()) {
+      setError('Plan name is required.');
       return;
     }
+
     if (
       dataToSend.items.length === 0 ||
-      dataToSend.items.some(item => !item.feed_id || !item.quantity_per_animal)
+      dataToSend.items.some(item => !item.feed || !item.quantity_per_animal)
     ) {
-      setError('All feed items must have a feed and quantity');
+      setError('All feed items must have a feed and quantity.');
       return;
     }
 
     try {
       setLoading(true);
       const response = await createFeedingPlan(dataToSend);
-      setMessage('Feeding plan created successfully');
-      onPlanCreated(response);
-      setFormData({name: '', items: [{feed_id: '', quantity_per_animal: ''}]});
+      setMessage('Feeding plan created successfully!');
+      onPlanCreated?.(response);
       setTimeout(() => onClose(), 1000);
     } catch (err) {
       console.error('API Error:', err.response || err);
-      setError(err.response?.data?.error || 'Failed to create feeding plan');
+      setError(
+        err.response?.data?.non_field_errors?.[0] ||
+          err.response?.data?.error ||
+          'Failed to create feeding plan.',
+      );
     } finally {
       setLoading(false);
     }
@@ -122,56 +141,67 @@ const CreateFeedingPlanModal = ({visible, onClose, onPlanCreated}) => {
       <KeyboardAvoidingView
         style={styles.backdrop}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <View style={styles.modalBox}>
-          <Text style={styles.title}>Create Feeding Plan</Text>
+        <View style={[styles.modalBox, {backgroundColor}]}>
+          <Text style={[styles.title, {color: textColor}]}>
+            Create Feeding Plan
+          </Text>
 
-          {loading && <ActivityIndicator size="large" color="#000" />}
+          {loading && <ActivityIndicator size="large" color="#ffa500" />}
 
           <ScrollView
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{paddingBottom: 20}}>
             {/* Plan Name */}
             <TextInput
-              style={styles.input}
+              style={[styles.input, {color: textColor, backgroundColor}]}
               placeholder="Plan Name"
+              placeholderTextColor="#888"
               value={formData.name}
               onChangeText={text => handleChange('name', text)}
             />
 
+            {/* Feed Items */}
             {formData.items.map((item, index) => (
               <View key={index} style={styles.feedRow}>
-                {/* Feed select */}
+                {/* Feed Picker */}
                 <View style={styles.feedSelect}>
-                  <Text style={styles.label}>Feed</Text>
-                  <View style={styles.pickerWrapper}>
+                  <Text style={[styles.label, {color: textColor}]}>Feed</Text>
+                  <View style={[styles.pickerWrapper, {backgroundColor}]}>
                     <Picker
-                      selectedValue={item.feed_id}
-                      style={styles.inputSmall}
-                      onValueChange={val =>
-                        handleChange('feed_id', val, index)
-                      }>
+                      selectedValue={item.feed}
+                      style={[styles.inputSmall, {color: textColor}]}
+                      dropdownIconColor={textColor}
+                      onValueChange={val => handleChange('feed', val, index)}>
                       <Picker.Item
                         label="-- Select Feed --"
                         value=""
                         enabled={false}
+                        color="#888"
                       />
                       {feeds.map(feed => (
                         <Picker.Item
                           key={feed.id}
                           label={feed.name}
                           value={feed.id}
+                          color={textColor}
                         />
                       ))}
                     </Picker>
                   </View>
                 </View>
 
-                {/* Qty input with label */}
+                {/* Quantity */}
                 <View style={styles.qtyBox}>
-                  <Text style={styles.label}>Qty</Text>
+                  <Text style={[styles.label, {color: textColor}]}>
+                    Qty (kg)
+                  </Text>
                   <TextInput
-                    style={styles.inputSmall}
+                    style={[
+                      styles.inputSmall,
+                      {color: textColor, backgroundColor},
+                    ]}
                     placeholder="kg"
+                    placeholderTextColor="#888"
                     keyboardType="numeric"
                     value={item.quantity_per_animal.toString()}
                     onChangeText={text =>
@@ -180,8 +210,7 @@ const CreateFeedingPlanModal = ({visible, onClose, onPlanCreated}) => {
                   />
                 </View>
 
-                {/* Remove button */}
-
+                {/* Remove */}
                 <TouchableOpacity
                   style={styles.deleteButton}
                   onPress={() => removeItem(index)}>
@@ -190,13 +219,16 @@ const CreateFeedingPlanModal = ({visible, onClose, onPlanCreated}) => {
               </View>
             ))}
 
-            {/* Add Feed Item */}
+            {/* Add Feed */}
             <TouchableOpacity style={styles.addBtn} onPress={addItem}>
               <Text style={styles.addText}>+ Add Feed</Text>
             </TouchableOpacity>
 
             {/* Submit */}
-            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit}>
+            <TouchableOpacity
+              style={styles.submitBtn}
+              onPress={handleSubmit}
+              disabled={loading}>
               <Text style={styles.submitText}>Create Plan</Text>
             </TouchableOpacity>
 
@@ -205,7 +237,7 @@ const CreateFeedingPlanModal = ({visible, onClose, onPlanCreated}) => {
 
             {/* Close */}
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Text style={styles.closeText}>Close</Text>
+              <Text style={[styles.closeText, {color: textColor}]}>Close</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -223,11 +255,14 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   modalBox: {
-    width: '90%',
-    maxHeight: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    width: '92%',
+    maxHeight: '85%',
+    borderRadius: 12,
     padding: 20,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   title: {
     fontSize: 22,
@@ -240,7 +275,7 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 6,
     padding: 10,
-    marginBottom: 12,
+    marginBottom: 14,
   },
   feedRow: {
     flexDirection: 'row',
@@ -249,7 +284,7 @@ const styles = StyleSheet.create({
   },
   feedSelect: {
     flex: 1,
-    marginRight: 5,
+    marginRight: 6,
   },
   label: {
     fontWeight: 'bold',
@@ -259,7 +294,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 6,
-    height: 40, // 👈 makes dropdown same height as Qty
+    height: 40,
     justifyContent: 'center',
   },
   inputSmall: {
@@ -274,16 +309,10 @@ const styles = StyleSheet.create({
     width: 80,
     marginRight: 5,
   },
-  deleteBtn: {
-    backgroundColor: '#ff4444',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 6,
+  deleteButton: {
+    marginLeft: 8,
     justifyContent: 'center',
-  },
-  deleteText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    alignItems: 'center',
   },
   addBtn: {
     borderWidth: 1,
@@ -293,29 +322,42 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     alignItems: 'center',
   },
-  addText: {color: '#ffa500', fontWeight: 'bold'},
+  addText: {
+    color: '#ffa500',
+    fontWeight: 'bold',
+  },
   submitBtn: {
     backgroundColor: '#ffa500',
     padding: 12,
     borderRadius: 6,
     alignItems: 'center',
+    marginTop: 5,
   },
-  submitText: {color: '#fff', fontWeight: 'bold'},
-  success: {color: 'green', marginTop: 10, textAlign: 'center'},
-  error: {color: 'red', marginTop: 10, textAlign: 'center'},
+  submitText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  success: {
+    marginTop: 10,
+    textAlign: 'center',
+    color: 'green',
+  },
+  error: {
+    marginTop: 10,
+    textAlign: 'center',
+    color: 'red',
+  },
   closeBtn: {
-    marginTop: 20,
+    marginTop: 18,
     padding: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 6,
   },
-  closeText: {color: '#333'},
-  deleteButton: {
-    marginLeft: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+  closeText: {
+    fontWeight: '500',
   },
 });
 

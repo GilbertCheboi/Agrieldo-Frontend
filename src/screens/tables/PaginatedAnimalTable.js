@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -9,24 +9,8 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
-const ROWS_PER_PAGE = 5;
-
-const PaginatedAnimalTable = ({animals}) => {
+const AnimalTable = ({animals}) => {
   const navigation = useNavigation();
-
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const totalPages = Math.ceil(animals.length / ROWS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ROWS_PER_PAGE;
-  const currentAnimals = animals.slice(startIndex, startIndex + ROWS_PER_PAGE);
-
-  const handlePrev = () => {
-    if (currentPage > 1) setCurrentPage(prev => prev - 1);
-  };
-
-  const handleNext = () => {
-    if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
-  };
 
   const TableHeader = () => (
     <View style={[styles.row, styles.header]}>
@@ -47,12 +31,12 @@ const PaginatedAnimalTable = ({animals}) => {
           animal: item,
         })
       }>
-      <Text style={styles.cell}>{item.name}</Text>
-      <Text style={styles.cell}>{item.tag}</Text>
-      <Text style={styles.cell}>{item.breed}</Text>
-      <Text style={styles.cell}>{item.gender}</Text>
-      <Text style={styles.cell}>{item.category}</Text>
-      <Text style={styles.cell}>{item.dob}</Text>
+      <Text style={styles.cell}>{item.name || '-'}</Text>
+      <Text style={styles.cell}>{item.tag || '-'}</Text>
+      <Text style={styles.cell}>{item.breed || '-'}</Text>
+      <Text style={styles.cell}>{item.gender || '-'}</Text>
+      <Text style={styles.cell}>{item.category || '-'}</Text>
+      <Text style={styles.cell}>{item.dob || '-'}</Text>
     </TouchableOpacity>
   );
 
@@ -60,51 +44,35 @@ const PaginatedAnimalTable = ({animals}) => {
     <View style={styles.wrapper}>
       <Text style={styles.title}>
         Animals in this Farm{' '}
-        <Text style={styles.caption}>(Click animal to view full profile)</Text>
+        <Text style={styles.caption}>(Tap an animal to view full profile)</Text>
       </Text>
 
+      {/* Horizontal Scroll for wide tables */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.table}>
           <TableHeader />
+          {/* Vertical Scroll for animal list */}
           <FlatList
-            data={currentAnimals}
+            data={animals}
             keyExtractor={(item, index) =>
               item.id?.toString() || index.toString()
             }
             renderItem={TableRow}
-            scrollEnabled={false}
+            showsVerticalScrollIndicator={true}
+            style={{maxHeight: 500}} // limit visible height (adjust if needed)
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>No animals found.</Text>
+            }
           />
         </View>
       </ScrollView>
-      <View style={styles.pagination}>
-        <TouchableOpacity onPress={handlePrev} disabled={currentPage === 1}>
-          <Text
-            style={[styles.pageButton, currentPage === 1 && styles.disabled]}>
-            Prev
-          </Text>
-        </TouchableOpacity>
-        <Text style={styles.pageIndicator}>
-          Page {currentPage} of {totalPages}
-        </Text>
-        <TouchableOpacity
-          onPress={handleNext}
-          disabled={currentPage === totalPages}>
-          <Text
-            style={[
-              styles.pageButton,
-              currentPage === totalPages && styles.disabled,
-            ]}>
-            Next
-          </Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginTop: 24,
+    marginTop: 20,
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 12,
@@ -119,6 +87,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingBottom: 10,
     color: '#1a3c34',
+  },
+  caption: {
+    fontSize: 12,
+    color: '#20d668',
+    fontStyle: 'italic',
   },
   table: {
     minWidth: 800,
@@ -138,36 +111,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#333',
   },
-  caption: {
-    fontSize: 12,
-    color: '#666',
-    fontStyle: 'italic',
-    color: '#20d668',
-  },
   cell: {
     flex: 1,
     paddingHorizontal: 6,
     fontSize: 13,
     color: '#444',
   },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
-    alignItems: 'center',
-  },
-  pageButton: {
-    color: '#ffa500',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  disabled: {
-    color: '#ccc',
-  },
-  pageIndicator: {
-    fontSize: 13,
-    color: '#333',
+  emptyText: {
+    textAlign: 'center',
+    color: '#777',
+    marginTop: 20,
   },
 });
 
-export default PaginatedAnimalTable;
+export default AnimalTable;

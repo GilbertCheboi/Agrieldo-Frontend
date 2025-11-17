@@ -1,4 +1,3 @@
-// components/AddFeedModal.js
 import React, {useEffect, useState} from 'react';
 import {
   View,
@@ -14,7 +13,7 @@ import {
 } from 'react-native';
 import {getFeeds, addFeedToStore} from '../../utils/api';
 
-const AddFeedModal = ({onClose, onFeedAdded}) => {
+const AddFeedModal = ({onClose, onFeedAdded, storeId}) => {
   const [formData, setFormData] = useState({
     name: '',
     quantity_kg: '',
@@ -53,12 +52,17 @@ const AddFeedModal = ({onClose, onFeedAdded}) => {
   const handleSubmit = async () => {
     setMessage({type: '', text: ''});
 
+    if (!storeId) {
+      return setMessage({type: 'error', text: 'Store ID missing'});
+    }
+
     const dataToSend = {
       name: formData.name.trim(),
       quantity_kg: parseFloat(formData.quantity_kg) || 0,
       price_per_kg: formData.price_per_kg
         ? parseFloat(formData.price_per_kg)
         : undefined,
+      store: storeId, // ✅ Include store ID here
     };
 
     if (!dataToSend.name) {
@@ -103,6 +107,7 @@ const AddFeedModal = ({onClose, onFeedAdded}) => {
           <TextInput
             style={styles.input}
             placeholder="Feed Name"
+            placeholderTextColor="#888"
             value={formData.name}
             onChangeText={text => handleChange('name', text)}
           />
@@ -113,10 +118,10 @@ const AddFeedModal = ({onClose, onFeedAdded}) => {
               keyExtractor={item => item.id.toString()}
               renderItem={({item}) => (
                 <TouchableOpacity
-                  onPress={() =>
-                    setFormData({...formData, name: item.name}) ||
-                    setSearchResults([])
-                  }>
+                  onPress={() => {
+                    setFormData({...formData, name: item.name});
+                    setSearchResults([]);
+                  }}>
                   <Text style={styles.suggestion}>{item.name}</Text>
                 </TouchableOpacity>
               )}
@@ -126,6 +131,7 @@ const AddFeedModal = ({onClose, onFeedAdded}) => {
           <TextInput
             style={styles.input}
             placeholder="Quantity (kg)"
+            placeholderTextColor="#888"
             keyboardType="numeric"
             value={formData.quantity_kg}
             onChangeText={text => handleChange('quantity_kg', text)}
@@ -133,7 +139,8 @@ const AddFeedModal = ({onClose, onFeedAdded}) => {
 
           <TextInput
             style={styles.input}
-            placeholder="Price per kg ($) (optional)"
+            placeholder="Price per kg (optional)"
+            placeholderTextColor="#888"
             keyboardType="numeric"
             value={formData.price_per_kg}
             onChangeText={text => handleChange('price_per_kg', text)}
@@ -174,7 +181,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)', // dimmed background
+    backgroundColor: 'rgba(0,0,0,0.3)',
   },
   cardWrapper: {
     width: '90%',
@@ -188,7 +195,12 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 4,
   },
-  title: {fontSize: 20, fontWeight: 'bold', marginBottom: 16},
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#333',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ddd',
@@ -196,12 +208,14 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     borderRadius: 8,
     fontSize: 16,
+    color: '#333',
   },
   suggestion: {
     padding: 10,
     backgroundColor: '#f1f1f1',
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
+    color: '#333',
   },
   button: {
     backgroundColor: '#ffa500',
@@ -210,10 +224,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 16,
   },
-  buttonText: {color: '#fff', fontWeight: 'bold'},
-  cancelButton: {marginTop: 10, alignItems: 'center'},
-  cancelText: {color: '#666', fontSize: 14},
-  message: {textAlign: 'center', marginTop: 10, fontSize: 14},
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  cancelButton: {
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  cancelText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  message: {
+    textAlign: 'center',
+    marginTop: 10,
+    fontSize: 14,
+  },
   error: {color: 'red'},
   success: {color: 'green'},
 });

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -20,9 +21,19 @@ const LactationRecordModal = ({
 }) => {
   const [showCalvingPicker, setShowCalvingPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [saving, setSaving] = useState(false); // ⭐ loading indicator
 
   const handleChange = (field, value) => {
     setForm(prev => ({...prev, [field]: value}));
+  };
+
+  const handleSavePress = async () => {
+    try {
+      setSaving(true); // show spinner
+      await onSave(); // wait for API
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -33,10 +44,12 @@ const LactationRecordModal = ({
             {isEditing ? 'Edit Lactation Record' : 'Add Lactation Record'}
           </Text>
 
+          {/* Lactation Number */}
           <TextInput
             style={styles.input}
             value={String(form?.lactation_number || '')}
             placeholder="Lactation Number"
+            placeholderTextColor="#888"
             keyboardType="numeric"
             onChangeText={text =>
               handleChange('lactation_number', parseInt(text))
@@ -49,9 +62,11 @@ const LactationRecordModal = ({
               style={styles.input}
               value={form?.last_calving_date || ''}
               placeholder="Last Calving Date"
+              placeholderTextColor="#888"
               editable={false}
             />
           </TouchableOpacity>
+
           {showCalvingPicker && (
             <DateTimePicker
               value={
@@ -79,9 +94,11 @@ const LactationRecordModal = ({
               style={styles.input}
               value={form?.end_date || ''}
               placeholder="End Date (optional)"
+              placeholderTextColor="#888"
               editable={false}
             />
           </TouchableOpacity>
+
           {showEndPicker && (
             <DateTimePicker
               value={form?.end_date ? new Date(form.end_date) : new Date()}
@@ -108,12 +125,24 @@ const LactationRecordModal = ({
             />
           </View>
 
+          {/* Action Buttons */}
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.btnText}>Cancel</Text>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={onClose}
+              disabled={saving}>
+              <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
-              <Text style={styles.btnText}>Save</Text>
+
+            <TouchableOpacity
+              style={styles.saveBtn}
+              onPress={handleSavePress}
+              disabled={saving}>
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnText}>Save</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -151,6 +180,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 12,
     fontSize: 14,
+    color: '#000',
   },
   switchRow: {
     flexDirection: 'row',
@@ -180,6 +210,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   btnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  cancelText: {
     color: '#fff',
     fontWeight: '600',
   },

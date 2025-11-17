@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   Modal,
   View,
@@ -6,7 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -18,10 +18,20 @@ const ReproductiveRecordModal = ({
   setForm,
   onSave,
 }) => {
-  const [showDatePicker, setShowDatePicker] = React.useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [saving, setSaving] = useState(false); // ✅ loading state
 
   const handleChange = (field, value) => {
     setForm(prev => ({...prev, [field]: value}));
+  };
+
+  const handleSavePress = async () => {
+    try {
+      setSaving(true); // show spinner
+      await onSave(); // wait for API
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -31,11 +41,14 @@ const ReproductiveRecordModal = ({
           <Text style={styles.title}>
             {isEditing ? 'Edit Reproductive Record' : 'Add Reproductive Record'}
           </Text>
+
+          {/* DATE FIELD */}
           <TouchableOpacity onPress={() => setShowDatePicker(true)}>
             <TextInput
               style={styles.input}
               value={form?.date ? String(form.date) : ''}
               placeholder="Date"
+              placeholderTextColor="#888"
               editable={false}
             />
           </TouchableOpacity>
@@ -45,7 +58,7 @@ const ReproductiveRecordModal = ({
               value={form?.date ? new Date(form.date) : new Date()}
               mode="date"
               display="default"
-              onChange={(event, selectedDate) => {
+              onChange={(e, selectedDate) => {
                 setShowDatePicker(false);
                 if (selectedDate) {
                   handleChange(
@@ -57,32 +70,53 @@ const ReproductiveRecordModal = ({
             />
           )}
 
+          {/* EVENT */}
           <TextInput
             style={styles.input}
             value={form?.event}
             placeholder="Event (e.g., AI, Natural Breeding)"
+            placeholderTextColor="#888"
             onChangeText={text => handleChange('event', text)}
           />
+
+          {/* DETAILS */}
           <TextInput
             style={styles.input}
             value={form?.details}
             placeholder="Details"
+            placeholderTextColor="#888"
             onChangeText={text => handleChange('details', text)}
             multiline
           />
+
+          {/* COST */}
           <TextInput
             style={styles.input}
             value={form?.cost}
             placeholder="Cost (Ksh)"
+            placeholderTextColor="#888"
             keyboardType="numeric"
             onChangeText={text => handleChange('cost', text)}
           />
+
+          {/* BUTTONS */}
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.btnText}>Cancel</Text>
+            <TouchableOpacity
+              style={styles.cancelBtn}
+              onPress={onClose}
+              disabled={saving}>
+              <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
-              <Text style={styles.btnText}>Save</Text>
+
+            <TouchableOpacity
+              style={styles.saveBtn}
+              onPress={handleSavePress}
+              disabled={saving}>
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.btnText}>Save</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -120,6 +154,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 12,
     fontSize: 14,
+    color: '#000',
   },
   actions: {
     flexDirection: 'row',
@@ -139,6 +174,10 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   btnText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  cancelText: {
     color: '#fff',
     fontWeight: '600',
   },

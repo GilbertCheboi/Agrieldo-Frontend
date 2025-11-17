@@ -1,5 +1,5 @@
 // VetDrawerNavigator.js
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useContext} from 'react';
 import {
   View,
   Text,
@@ -8,69 +8,117 @@ import {
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
+
 import {
   createDrawerNavigator,
   DrawerContentScrollView,
   DrawerItemList,
 } from '@react-navigation/drawer';
+
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import {launchImageLibrary} from 'react-native-image-picker';
+import {useNavigation} from '@react-navigation/native';
 
 import VetStackNavigator from './VetStackNavigator';
-import VetAccountScreen from '../screens/VetAccountScreen';
 import VetBillingScreen from '../screens/VetBillingScreen';
 import VetMessagingScreen from '../screens/VetMessagingScreen';
-import {fetchUserProfile} from '../utils/api';
+import DrugCategoriesScreen from '../screens/DrugCategoriesScreen';
+import MarketListingsScreen from '../screens/MarketListingsScreen';
+
+import {fetchUserProfile, updateProfileImage} from '../utils/api';
+import {CartContext} from '../context/CartContext';
 
 const CustomDrawerContent = props => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const handleSelectImage = () => {
+    const options = {
+      mediaType: 'photo',
+      maxWidth: 512,
+      maxHeight: 512,
+      quality: 0.8,
+    };
+
+    launchImageLibrary(options, async response => {
+      if (response.didCancel) {
+        console.log('User cancelled');
+      } else if (response.errorCode) {
+        console.error('ImagePicker Error:', response.errorMessage);
+      } else {
+        const uri = response.assets[0].uri;
+        setUser(prev => ({...prev, profile_image: uri}));
+
+        try {
+          await updateProfileImage(uri);
+        } catch (error) {
+          console.error('Failed to save profile image:', error);
+        }
+      }
+    });
+  };
+
+  // Load profile
   useEffect(() => {
-    const loadUser = async () => {
+    const loadProfile = async () => {
       try {
-        const data = await fetchUserProfile();
-        setUser(data);
-      } catch (err) {
-        console.error('Error fetching profile:', err);
+        const profile = await fetchUserProfile();
+        setUser({
+          username: profile.username,
+          email: profile.email,
+          profile_image: profile.profile_image,
+          phone_number: profile.phone_number,
+        });
+      } catch (error) {
+        console.error('Failed to load profile:', error);
       } finally {
         setLoading(false);
       }
     };
-    loadUser();
+
+    loadProfile();
   }, []);
 
   const handleLogout = () => {
-    // 👉 Add your logout logic here (clear tokens, navigate to login, etc.)
-    console.log('Logging out...');
-    props.navigation.replace('Login'); // example if you have a Login screen
+    props.navigation.replace('Login');
   };
 
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={{flex: 1}}>
-      {/* Profile Header */}
       <View style={styles.header}>
-        <Image
-          source={require('../assets/vet-profile-img.jpeg')}
-          style={styles.profileImage}
-        />
+        <View style={styles.profileImageWrapper}>
+          <Image
+            source={
+              user?.profile_image
+                ? {uri: user.profile_image}
+                : require('../assets/farmer.jpeg')
+            }
+            style={styles.profileImage}
+          />
+
+          <TouchableOpacity
+            activeOpacity={0.75}
+            style={styles.editButton}
+            onPress={handleSelectImage}>
+            <Ionicons name="pencil" size={14} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
           <>
-            <Text style={styles.profileName}>
-              {user?.username ? `Dr. ${user.username}` : 'Unknown Vet'}
-            </Text>
+            <Text style={styles.profileName}>{user?.username || 'Vet'}</Text>
+            <Text style={styles.phoneNumber}>{user?.phone_number || ''}</Text>
             <Text style={styles.profileRole}>{user?.email || ''}</Text>
           </>
         )}
       </View>
 
-      {/* Drawer items */}
       <View style={styles.drawerList}>
         <DrawerItemList {...props} />
       </View>
 
-      {/* Logout button pinned at bottom */}
       <View style={styles.logoutContainer}>
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <Ionicons name="log-out-outline" size={20} color="#333" />
@@ -83,60 +131,107 @@ const CustomDrawerContent = props => {
 
 const Drawer = createDrawerNavigator();
 
-const VetDrawerNavigator = () => (
-  <Drawer.Navigator
-    initialRouteName="VetRequests"
-    drawerContent={props => <CustomDrawerContent {...props} />}
-    screenOptions={{
-      headerStyle: {backgroundColor: '#ffa500'},
-      headerTintColor: '#fff',
-      drawerActiveTintColor: '#ffa500',
-      drawerInactiveTintColor: '#333',
-      drawerLabelStyle: {marginLeft: -10, fontSize: 16},
-      drawerStyle: {width: 220},
-    }}>
-    <Drawer.Screen
-      name="VetRequests"
-      component={VetStackNavigator}
-      options={{
-        title: 'Requests',
-        drawerIcon: ({color, size}) => (
-          <Ionicons name="clipboard-outline" size={size} color={color} />
+const VetDrawerNavigator = () => {
+  const {cartItems} = useContext(CartContext);
+  const navigation = useNavigation();
+
+  return (
+    <Drawer.Navigator
+      initialRouteName="VetRequests"
+      drawerContent={props => <CustomDrawerContent {...props} />}
+      screenOptions={{
+        headerStyle: {backgroundColor: '#333333'},
+        headerTintColor: '#ffa500',
+        drawerActiveTintColor: '#ffa500',
+        drawerInactiveTintColor: '#333',
+        drawerLabelStyle: {marginLeft: -10, fontSize: 16},
+        drawerStyle: {width: 220},
+
+        // ⭐⭐⭐ CART ICON ADDED HERE
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Cart')}
+            style={{marginRight: 16, position: 'relative'}}>
+            <Ionicons name="cart-outline" size={26} color="#ffa500" />
+
+            {cartItems.length > 0 && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: -4,
+                  right: -6,
+                  backgroundColor: 'red',
+                  borderRadius: 10,
+                  width: 18,
+                  height: 18,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}>
+                <Text
+                  style={{color: 'white', fontSize: 10, fontWeight: 'bold'}}>
+                  {cartItems.length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         ),
-      }}
-    />
-    <Drawer.Screen
-      name="VetAccounts"
-      component={VetAccountScreen}
-      options={{
-        title: 'Accounts',
-        drawerIcon: ({color, size}) => (
-          <Ionicons name="person-outline" size={size} color={color} />
-        ),
-      }}
-    />
-    <Drawer.Screen
-      name="VetBilling"
-      component={VetBillingScreen}
-      options={{
-        title: 'Billing',
-        drawerIcon: ({color, size}) => (
-          <Ionicons name="cash-outline" size={size} color={color} />
-        ),
-      }}
-    />
-    <Drawer.Screen
-      name="VetMessaging"
-      component={VetMessagingScreen}
-      options={{
-        title: 'Messaging',
-        drawerIcon: ({color, size}) => (
-          <Ionicons name="chatbubble-outline" size={size} color={color} />
-        ),
-      }}
-    />
-  </Drawer.Navigator>
-);
+      }}>
+      <Drawer.Screen
+        name="VetRequests"
+        component={VetStackNavigator}
+        options={{
+          title: 'My Farms',
+          drawerIcon: ({color, size}) => (
+            <Ionicons name="clipboard-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Drawer.Screen
+        name="VetBilling"
+        component={VetBillingScreen}
+        options={{
+          title: 'Billing',
+          drawerIcon: ({color, size}) => (
+            <Ionicons name="cash-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Drawer.Screen
+        name="VetMessaging"
+        component={VetMessagingScreen}
+        options={{
+          title: 'Requests',
+          drawerIcon: ({color, size}) => (
+            <Ionicons name="chatbubble-outline" size={size} color={color} />
+          ),
+        }}
+      />
+
+      <Drawer.Screen
+        name="Store"
+        component={DrugCategoriesScreen}
+        options={{
+          title: 'Drug Store',
+          drawerIcon: ({color, size}) => (
+            <Ionicons name="medkit-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Drawer.Screen
+        name="Market"
+        component={MarketListingsScreen}
+        options={{
+          title: 'Market/Auction',
+          drawerIcon: ({color, size}) => (
+            <Ionicons name="storefront-outline" size={size} color={color} />
+          ),
+        }}
+      />
+    </Drawer.Navigator>
+  );
+};
 
 export default VetDrawerNavigator;
 
@@ -144,10 +239,11 @@ export default VetDrawerNavigator;
 const styles = StyleSheet.create({
   header: {
     paddingVertical: 15,
-    backgroundColor: '#ffa500',
+    backgroundColor: '#333333',
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   profileImage: {
     width: 70,
     height: 70,
@@ -156,30 +252,63 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
+
+  profileImageWrapper: {
+    width: 70,
+    height: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+
+  editButton: {
+    position: 'absolute',
+    right: -4,
+    bottom: 5,
+    width: 25,
+    height: 25,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#333333',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+
   profileName: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
+
+  phoneNumber: {
+    color: '#fff',
+    fontSize: 13,
+  },
+
   profileRole: {
     color: '#fff',
     fontSize: 13,
   },
+
   drawerList: {
     flex: 1,
     paddingTop: 10,
     backgroundColor: '#fff',
   },
+
   logoutContainer: {
     padding: 15,
     borderTopWidth: 1,
     borderTopColor: '#eee',
     backgroundColor: '#fff',
   },
+
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+
   logoutText: {
     marginLeft: 10,
     fontSize: 15,

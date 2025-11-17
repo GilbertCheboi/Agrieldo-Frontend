@@ -7,31 +7,51 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
-  ScrollView,
-  Dimensions,
+  Alert,
 } from 'react-native';
+import {useRoute, useNavigation} from '@react-navigation/native';
 import FeedAnimalsModal from './modals/FeedAnimalsModal';
 import AddFeedModal from './modals/AddFeedModal';
 import CreateFeedingPlanModal from './modals/CreateFeedingPlanModal';
+import FeedingPlanListModal from './modals/FeedingPlanListModal';
 import {getFeeds} from '../utils/api';
-
-const {width} = Dimensions.get('window');
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FeedStoreScreen = () => {
+  const route = useRoute();
+  const navigation = useNavigation();
+  const storeId = route.params?.storeId;
+
   const [feeds, setFeeds] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState(null);
 
-  // MODALS
-  const [addModalOpen, setAddModalOpen] = useState(false); // Top button: Add Feed to Store
-  const [createPlanOpen, setCreatePlanOpen] = useState(false); // FAB (+): Create Feeding Plan
-  const [feedModalOpen, setFeedModalOpen] = useState(false); // FAB (🍽): Feed Animals
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [createPlanOpen, setCreatePlanOpen] = useState(false);
+  const [feedModalOpen, setFeedModalOpen] = useState(false);
+  const [viewPlansOpen, setViewPlansOpen] = useState(false);
 
+  // 🔐 Get current user ID
+  const fetchUser = async () => {
+    const userId = await AsyncStorage.getItem('user_id');
+    setCurrentUserId(Number(userId));
+  };
+
+  // 📦 Fetch feeds for the selected store
   const fetchFeeds = async () => {
+    if (!storeId) return;
+
     try {
-      const data = await getFeeds();
+      setLoading(true);
+      console.log('🔄 Fetching feeds for store:', storeId);
+
+      const data = await getFeeds(storeId);
+      console.log('📥 Raw API feed data:', JSON.stringify(data, null, 2));
+
       setFeeds(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching feeds:', error);
+      console.error('❌ Error fetching feeds:', error.response?.data || error);
+      Alert.alert('Error', 'Could not load feeds');
       setFeeds([]);
     } finally {
       setLoading(false);
@@ -39,145 +59,147 @@ const FeedStoreScreen = () => {
   };
 
   useEffect(() => {
-    fetchFeeds();
+    fetchUser();
   }, []);
+
+  useEffect(() => {
+    fetchFeeds();
+  }, [storeId, currentUserId]);
 
   const handleFeedAdded = newFeed => {
     setFeeds(prevFeeds => {
-      const existingFeedIndex = prevFeeds.findIndex(
-        feed => feed.id === newFeed.id,
-      );
-      if (existingFeedIndex !== -1) {
-        const updatedFeeds = [...prevFeeds];
-        updatedFeeds[existingFeedIndex] = newFeed;
-        return updatedFeeds;
+      const existingIndex = prevFeeds.findIndex(f => f.id === newFeed.id);
+      if (existingIndex !== -1) {
+        const updated = [...prevFeeds];
+        updated[existingIndex] = newFeed;
+        return updated;
       }
       return [...prevFeeds, newFeed];
     });
   };
 
-  const handleFeedUpdated = () => {
-    fetchFeeds();
-  };
+  const handleFeedUpdated = () => fetchFeeds();
 
   const handlePlanCreated = newPlan => {
-    // Optional: you could refresh plans elsewhere or toast success
-    console.log('Feeding plan created:', newPlan?.name || newPlan);
+    console.log('📋 Feeding plan created:', newPlan?.name || newPlan);
     setCreatePlanOpen(false);
+    fetchFeeds();
   };
 
   if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#ffa500" />
-        <Text>Loading feeds...</Text>
+        <Text style={styles.loadingText}>Loading feeds...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      {/* Header row with title + Add Feed to Store at top */}
+      {/* 🏠 Header */}
       <View style={styles.headerRow}>
         <Text style={styles.title}>Feed Store</Text>
         <TouchableOpacity
           style={styles.addTopButton}
           onPress={() => setAddModalOpen(true)}>
-          <Text style={styles.addTopButtonText}>+ Add Feed to Store</Text>
+          <Text style={styles.addTopButtonText}>+ Add Feed</Text>
         </TouchableOpacity>
       </View>
 
+      {/* 📊 Feed Table */}
       {feeds.length === 0 ? (
         <Text style={styles.emptyText}>
-          No feeds in store. Please add a feed.
+          No feeds in this store or you are not authorized to use them.
         </Text>
       ) : (
-        <ScrollView horizontal showsHorizontalScrollIndicator>
-          <View style={styles.table}>
-            {/* Table Header */}
+        <FlatList
+          data={feeds}
+          keyExtractor={item => item.id.toString()}
+          ListHeaderComponent={() => (
             <View style={styles.tableHeader}>
-              <Text style={[styles.headerCell, styles.colName]}>Feed Name</Text>
-              <Text style={[styles.headerCell, styles.colQty]}>
-                Quantity (Kg)
+              <Text style={[styles.headerCell, styles.flex2]}>Feed</Text>
+              <Text style={[styles.headerCell, styles.flex1]}>
+                Qty in Hand (Kg)
               </Text>
-              <Text style={[styles.headerCell, styles.colPrice]}>
-                Price / Kg
+              <Text style={[styles.headerCell, styles.flex1]}>
+                Price (Ksh/Kg)
               </Text>
-              <Text style={[styles.headerCell, styles.colTotal]}>Total</Text>
             </View>
-
-            {/* Table Rows */}
-            <FlatList
-              data={feeds}
-              keyExtractor={item => item.id.toString()}
-              renderItem={({item, index}) => (
-                <View
-                  style={[
-                    styles.tableRow,
-                    index % 2 === 0 ? styles.rowEven : styles.rowOdd,
-                  ]}>
-                  <Text style={[styles.cell, styles.colName]} numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  <Text style={[styles.cell, styles.colQty]}>
-                    {item.quantity_kg} kg
-                  </Text>
-                  <Text style={[styles.cell, styles.colPrice]}>
-                    {item.price_per_kg
-                      ? `Ksh ${item.price_per_kg.toFixed(2)}`
-                      : 'N/A'}
-                  </Text>
-                  <Text style={[styles.cell, styles.colTotal]}>
-                    {item.quantity_kg && item.price_per_kg
-                      ? `Ksh ${(item.quantity_kg * item.price_per_kg).toFixed(
-                          2,
-                        )}`
-                      : 'N/A'}
-                  </Text>
-                </View>
-              )}
-            />
-          </View>
-        </ScrollView>
+          )}
+          renderItem={({item, index}) => (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('FeedActivity', {feed: item})}
+              style={[
+                styles.tableRow,
+                index % 2 === 0 ? styles.rowEven : styles.rowOdd,
+              ]}>
+              <Text style={[styles.cell, styles.flex2]} numberOfLines={1}>
+                {item.name}
+              </Text>
+              <Text style={[styles.cell, styles.flex1]}>
+                {item.quantity_kg} kg
+              </Text>
+              <Text style={[styles.cell, styles.flex1]}>
+                {item.price_per_kg ? item.price_per_kg.toFixed(2) : 'N/A'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
       )}
 
-      {/* Floating Action Buttons */}
-      {/* PRIMARY FAB (+) NOW OPENS CREATE FEEDING PLAN */}
+      {/* ➕ Floating Buttons */}
       <TouchableOpacity
         style={[styles.fab, styles.fabPrimary]}
         onPress={() => setCreatePlanOpen(true)}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
-      {/* SECONDARY FAB 🍽 FEED ANIMALS */}
+      <TouchableOpacity
+        style={[styles.fab, styles.fabTertiary]}
+        onPress={() => setViewPlansOpen(true)}>
+        <Text style={styles.fabText}>🧾</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity
         style={[styles.fab, styles.fabSecondary]}
         onPress={() => setFeedModalOpen(true)}>
         <Text style={styles.fabText}>🍽</Text>
       </TouchableOpacity>
 
-      {/* Modals */}
-      {/* Top button modal: Add Feed to Store */}
-      {/* Top button modal: Add Feed to Store */}
+      {/* 📋 Feeding Plans Modal */}
+      <Modal visible={viewPlansOpen} animationType="slide">
+        <FeedingPlanListModal
+          storeId={storeId}
+          onClose={() => setViewPlansOpen(false)}
+        />
+      </Modal>
+
+      {/* ➕ Add Feed Modal */}
       <Modal visible={addModalOpen} animationType="slide">
         <AddFeedModal
+          storeId={storeId}
           onClose={() => setAddModalOpen(false)}
           onFeedAdded={handleFeedAdded}
         />
       </Modal>
 
-      {/* Floating (+) modal: Create Feeding Plan */}
+      {/* 📦 Create Feeding Plan */}
       <CreateFeedingPlanModal
         visible={createPlanOpen}
         onClose={() => setCreatePlanOpen(false)}
         onPlanCreated={handlePlanCreated}
+        storeId={storeId}
+        feeds={feeds}
       />
 
-      {/* Floating 🍽 modal: Feed Animals */}
+      {/* 🍽 Feed Animals */}
       <Modal visible={feedModalOpen} animationType="slide">
         <FeedAnimalsModal
+          storeId={storeId}
           onClose={() => setFeedModalOpen(false)}
           onFeedUpdated={handleFeedUpdated}
+          feeds={feeds}
         />
       </Modal>
     </View>
@@ -185,81 +207,53 @@ const FeedStoreScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {flex: 1, padding: 16, backgroundColor: '#fff'},
+  container: {flex: 1, backgroundColor: '#fff', paddingHorizontal: 12},
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginVertical: 10,
   },
-  title: {fontSize: 24, fontWeight: 'bold'},
+  title: {fontSize: 18, fontWeight: '700', color: '#333'},
   addTopButton: {
     backgroundColor: '#ffa500',
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderRadius: 6,
   },
-  addTopButtonText: {color: '#fff', fontWeight: 'bold', fontSize: 14},
-
-  emptyText: {fontSize: 16, color: '#666'},
-
-  table: {
-    minWidth: width + 200, // ensures scroll when needed
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
+  addTopButtonText: {color: '#fff', fontWeight: '600', fontSize: 12},
+  emptyText: {fontSize: 13, color: '#666', textAlign: 'center', marginTop: 20},
+  loadingText: {fontSize: 13, marginTop: 8, color: '#333'},
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#ffa500',
+    paddingVertical: 8,
   },
   headerCell: {
-    fontSize: 14,
-    fontWeight: 'bold',
     color: '#fff',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderRightWidth: 1,
-    borderColor: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
     textAlign: 'center',
   },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
+  tableRow: {flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 4},
+  cell: {fontSize: 12, color: '#333', textAlign: 'center'},
   rowEven: {backgroundColor: '#f9f9f9'},
   rowOdd: {backgroundColor: '#fff'},
-  cell: {
-    fontSize: 14,
-    color: '#333',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderRightWidth: 1,
-    borderColor: '#eee',
-    textAlign: 'center',
-  },
-  colName: {width: 150, textAlign: 'left'},
-  colQty: {width: 120, textAlign: 'right'},
-  colPrice: {width: 140, textAlign: 'right'},
-  colTotal: {width: 160, textAlign: 'right'},
-
+  flex2: {flex: 2, textAlign: 'left', paddingLeft: 8},
+  flex1: {flex: 1},
   fab: {
     position: 'absolute',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 5,
+    elevation: 6,
   },
-  // (+) opens CreateFeedingPlanModal
-  fabPrimary: {bottom: 80, right: 20, backgroundColor: '#ffa500'},
-  // (🍽) opens FeedAnimalsModal
-  fabSecondary: {bottom: 20, right: 20, backgroundColor: '#333'},
-
-  fabText: {fontSize: 24, color: '#fff'},
+  fabTertiary: {backgroundColor: '#2e7d32', bottom: 135, right: 16},
+  fabPrimary: {backgroundColor: '#ffa500', bottom: 75, right: 16},
+  fabSecondary: {backgroundColor: '#333', bottom: 15, right: 16},
+  fabText: {fontSize: 20, color: '#fff', fontWeight: 'bold'},
   center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
 });
 

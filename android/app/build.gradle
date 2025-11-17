@@ -25,18 +25,24 @@ project.ext.react = [
 ]
 
 android {
+
     compileSdk rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
     ndkVersion rootProject.ext.ndkVersion
 
     namespace "com.agrieldo"
+
     defaultConfig {
         applicationId "com.agrieldo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20
-        versionName "1.0.20"
-        ndk.debugSymbolLevel = "FULL"
+        versionCode 21
+        versionName "1.0.21"
+
+        // Disable debug symbols in release (saves HUGE size)
+        ndk {
+            debugSymbolLevel "NONE"
+        }
     }
 
     signingConfigs {
@@ -46,7 +52,6 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
-
         release {
             if (project.hasProperty("MYAPP_UPLOAD_STORE_FILE")) {
                 storeFile file(MYAPP_UPLOAD_STORE_FILE)
@@ -57,23 +62,29 @@ android {
         }
     }
 
+    // ⭐ Biggest size reduction – ABI splits
+    splits {
+        abi {
+            enable true
+            reset()
+            include "armeabi-v7a", "arm64-v8a"
+            universalApk false
+        }
+    }
+
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
-        // release {
-        //     signingConfig signingConfigs.release // Use your own keystore in production
-        //     minifyEnabled enableProguardInReleaseBuilds
-        //     proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-        // }
         release {
             signingConfig signingConfigs.release
-            minifyEnabled false
-            shrinkResources false
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
 }
+
 
 dependencies {
     // React Native Dependencies

@@ -86,7 +86,7 @@ export default function VetRequestsOverviewScreen() {
       });
 
       const res = await fetch(
-        ' http://192.168.100.4:8000/api/profiles/vets/available/',
+        'http://api.agreildo.com/api/profiles/vets/available/',
         {
           method: 'POST',
           headers: {
@@ -284,7 +284,7 @@ export default function VetRequestsOverviewScreen() {
     try {
       const token = await AsyncStorage.getItem('access_token');
       const res = await fetch(
-        ' http://192.168.100.4:8000/api/vet_requests/request/',
+        'http://api.agrieldo.com/api/vet_requests/request/',
         {
           method: 'POST',
           headers: {

@@ -8,6 +8,7 @@ import SignupScreen from '../screens/SignupScreen';
 import FarmerDrawerNavigator from '../api/FarmerDrawerNavigator';
 import VetDrawerNavigator from '../api/VetDrawerNavigator';
 import FarmDashboard from '../screens/FarmDashboard'; // ✅ Import the screen
+import StaffDrawerNavigator from '../api/StaffDrawerNavigator';
 
 const Stack = createStackNavigator();
 
@@ -46,6 +47,12 @@ const AppNavigator = () => {
           <Stack.Screen
             name="VetHome"
             component={VetDrawerNavigator}
+            options={{headerShown: false}}
+          />
+        ) : userType === 'staff' ? (
+          <Stack.Screen
+            name="StaffHome"
+            component={StaffDrawerNavigator}
             options={{headerShown: false}}
           />
         ) : (

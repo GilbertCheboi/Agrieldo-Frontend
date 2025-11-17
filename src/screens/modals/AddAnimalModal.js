@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
   Modal,
   View,
@@ -8,10 +8,11 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
+  Image,
 } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
 import {launchImageLibrary} from 'react-native-image-picker';
-import {Image} from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const AddAnimalModal = ({
   visible,
@@ -22,6 +23,8 @@ const AddAnimalModal = ({
   handleAddAnimal,
   handleImageChange,
 }) => {
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   const pickImage = () => {
     launchImageLibrary({mediaType: 'photo', selectionLimit: 5}, response => {
       if (response.didCancel) {
@@ -39,6 +42,15 @@ const AddAnimalModal = ({
     });
   };
 
+  // Handle date selection
+  const handleDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      handleFormChange('dob', formattedDate);
+    }
+  };
+
   return (
     <Modal visible={visible} animationType="slide" transparent={true}>
       <View style={styles.modalBackground}>
@@ -49,6 +61,7 @@ const AddAnimalModal = ({
             <TextInput
               style={styles.input}
               placeholder="Animal Name"
+              placeholderTextColor="#0f0f0fa6"
               value={formData.name}
               onChangeText={text => handleFormChange('name', text)}
             />
@@ -59,6 +72,7 @@ const AddAnimalModal = ({
             <TextInput
               style={styles.input}
               placeholder="Tag"
+              placeholderTextColor="#0f0f0fa6"
               value={formData.tag}
               onChangeText={text => handleFormChange('tag', text)}
             />
@@ -69,6 +83,7 @@ const AddAnimalModal = ({
             <TextInput
               style={styles.input}
               placeholder="Breed"
+              placeholderTextColor="#0f0f0fa6"
               value={formData.breed}
               onChangeText={text => handleFormChange('breed', text)}
             />
@@ -79,6 +94,10 @@ const AddAnimalModal = ({
             <Text style={styles.label}>Gender</Text>
             <Picker
               selectedValue={formData.gender}
+              style={[
+                styles.picker,
+                formData.gender === '' && {color: '#398659'},
+              ]}
               onValueChange={value => handleFormChange('gender', value)}>
               <Picker.Item label="Select Gender" value="" />
               <Picker.Item label="Female" value="Female" />
@@ -86,12 +105,31 @@ const AddAnimalModal = ({
             </Picker>
 
             <Text style={styles.label}>Date of Birth</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="YYYY-MM-DD"
-              value={formData.dob}
-              onChangeText={text => handleFormChange('dob', text)}
-            />
+
+            {/* Date picker field */}
+            <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+              <TextInput
+                style={[styles.input, {color: formData.dob ? '#000' : '#999'}]}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor="#0f0f0fa6"
+                value={formData.dob}
+                editable={false}
+              />
+            </TouchableOpacity>
+
+            {/* Date picker modal */}
+            {showDatePicker && (
+              <DateTimePicker
+                value={
+                  formData.dob ? new Date(formData.dob) : new Date('2020-01-01')
+                }
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleDateChange}
+                maximumDate={new Date()}
+              />
+            )}
+
             {formErrors.dob && (
               <Text style={styles.error}>{formErrors.dob}</Text>
             )}
@@ -99,8 +137,9 @@ const AddAnimalModal = ({
             <Text style={styles.label}>Category</Text>
             <Picker
               selectedValue={formData.category}
-              onValueChange={value => handleFormChange('category', value)}>
-              <Picker.Item label="Select Category" value="" />
+              onValueChange={value => handleFormChange('category', value)}
+              style={styles.picker}>
+              <Picker.Item label="Select Category" value="" color="red" />
               {[
                 'Calf (0-3 months)',
                 'Weaner Stage 1 (3-6 months)',
@@ -122,7 +161,10 @@ const AddAnimalModal = ({
 
             <Text style={styles.label}>Farm</Text>
             <TextInput
-              style={[styles.input, {backgroundColor: '#f0f0f0'}]}
+              style={[
+                styles.input,
+                {backgroundColor: '#181515ff', color: '#fff'},
+              ]}
               value={
                 formData.farms.find(f => f.id === formData.farm)?.name ||
                 'Current Farm'
@@ -130,9 +172,9 @@ const AddAnimalModal = ({
               editable={false}
             />
 
-            {/* Image upload simulation */}
+            {/* Image upload */}
             <TouchableOpacity onPress={pickImage} style={styles.input}>
-              <Text style={{color: '#333'}}>Select Images</Text>
+              <Text style={{color: '#9c2121ff'}}>Select Images</Text>
             </TouchableOpacity>
 
             <ScrollView horizontal>
@@ -189,11 +231,13 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#963636ff',
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: Platform.OS === 'ios' ? 12 : 8,
     marginBottom: 8,
+    backgroundColor: '#fff',
+    color: '#000',
   },
   label: {
     marginTop: 8,
@@ -205,11 +249,6 @@ const styles = StyleSheet.create({
     color: 'red',
     fontSize: 12,
     marginBottom: 4,
-  },
-  infoText: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 8,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -231,6 +270,13 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  picker: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    marginBottom: 8,
+    color: '#333',
   },
 });
 

@@ -131,7 +131,7 @@ const ChatGPT = () => {
       styles.message,
       {
         alignSelf: item.sender === 'user' ? 'flex-end' : 'flex-start',
-        backgroundColor: item.sender === 'user' ? '#ffa500' : '#e0e0e0',
+        backgroundColor: item.sender === 'user' ? '#333333' : '#e0e0e0',
         opacity: animValues[item.id] || 0,
         transform: [
           {

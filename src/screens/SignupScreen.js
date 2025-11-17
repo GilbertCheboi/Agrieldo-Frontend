@@ -235,7 +235,7 @@ const SignupScreen = ({navigation}) => {
       formData.append('user_type', userType);
 
       await axios.post(
-        ' http://192.168.100.4:8000/api/accounts/users/',
+        'http://api.agrieldo.com/api/accounts/users/',
         formData,
         {
           headers: {
@@ -350,7 +350,7 @@ const SignupScreen = ({navigation}) => {
         onValueChange={itemValue => setUserType(itemValue)}>
         <Picker.Item label="Farmer" value={1} />
         <Picker.Item label="Vet" value={2} />
-        {/* Staff removed */}
+        <Picker.Item label="Staff" value={3} />
         <Picker.Item label="Mechanization Agent" value={4} />
       </Picker>
 

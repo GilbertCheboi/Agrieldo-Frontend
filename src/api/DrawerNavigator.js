@@ -7,7 +7,6 @@ import MessagingScreen from '../screens/MessagingScreen';
 import MarketScreen from '../screens/MarketScreen';
 import StoreScreen from '../screens/StoreScreen';
 import EducationScreen from '../screens/EducationScreen';
-import TabNavigator from './TabNavigator'; // Import TabNavigator to integrate bottom tabs
 import ChatGPT from '../screens/ChatGPT';
 
 // You can also import custom drawer content if needed
@@ -31,11 +30,7 @@ const DrawerNavigator = () => (
     // drawerContent={(props) => <CustomDrawerContent {...props} />}
   >
     {/* Integrate bottom tab navigation */}
-    <Drawer.Screen
-      name="Home"
-      component={TabNavigator} // Use TabNavigator for Home
-      options={{title: 'Dashboard'}}
-    />
+
     <Drawer.Screen
       name="Accounts"
       component={AccountScreen}

@@ -3,41 +3,35 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
+  LayoutAnimation,
+  UIManager,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import {createAnimal, fetchAnimals} from '../utils/api';
-import AddAnimalModal from '././modals/AddAnimalModal';
+import AddAnimalModal from './modals/AddAnimalModal';
 import AnimalTable from './tables/PaginatedAnimalTable';
-import {FlatList} from 'react-native-gesture-handler';
 
-// At the very top of your file:
+// Enable animation on Android
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 const formatDateToISO = dob => {
-  // 1) Already ISO‑hyphen (YYYY‑MM‑DD)
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
-    return dob;
-  }
-
-  // 2) ISO‑slash (YYYY/MM/DD) → convert to hyphens
-  if (/^\d{4}\/\d{2}\/\d{2}$/.test(dob)) {
-    return dob.replace(/\//g, '-');
-  }
-
-  // 3) European dd‑mm‑yyyy or dd/mm/yyyy → ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dob)) return dob;
+  if (/^\d{4}\/\d{2}\/\d{2}$/.test(dob)) return dob.replace(/\//g, '-');
   const m = dob.match(/^(\d{2})[-\/](\d{2})[-\/](\d{4})$/);
-  if (m) {
-    const [, day, month, year] = m;
-    return `${year}-${month}-${day}`;
-  }
-
-  // 4) Fallback (invalid or unexpected format)
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
   return dob;
 };
 
 const categories = [
-  {label: 'Total Animals', icon: 'cow', key: 'totalCows'},
   {label: 'Bulls', icon: 'bullhorn', key: 'bulls', query: 'category=Bull'},
   {
     label: 'Heifers',
@@ -116,10 +110,10 @@ const categories = [
 
 const ViewAnimalsScreen = ({route}) => {
   const {farmId} = route.params || {};
-
   const [livestockData, setLivestockData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -134,19 +128,14 @@ const ViewAnimalsScreen = ({route}) => {
   });
   const [formErrors, setFormErrors] = useState({});
 
-  const handleFormChange = (name, value) => {
+  const handleFormChange = (name, value) =>
     setFormData(prev => ({...prev, [name]: value}));
-  };
 
   const handleImageChange = imageFileList => {
     const safeArray = Array.isArray(imageFileList)
       ? imageFileList
       : [imageFileList];
-
-    setFormData(prev => ({
-      ...prev,
-      images: safeArray,
-    }));
+    setFormData(prev => ({...prev, images: safeArray}));
   };
 
   const handleAddAnimal = async () => {
@@ -160,20 +149,15 @@ const ViewAnimalsScreen = ({route}) => {
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    // Build FormData
     const payload = new FormData();
     payload.append('name', formData.name);
     payload.append('tag', formData.tag);
     payload.append('breed', formData.breed);
-    // Format and append dob
-    const isoDob = formatDateToISO(formData.dob);
-    console.log('🎯 formatted DOB:', isoDob); // should now be "2020-09-09"
-    payload.append('dob', isoDob);
+    payload.append('dob', formatDateToISO(formData.dob));
     payload.append('gender', formData.gender);
     payload.append('category', formData.category);
     payload.append('farm', String(formData.farm));
 
-    // Add images safely
     if (formData.images?.length) {
       formData.images.forEach((file, index) => {
         payload.append('images', {
@@ -184,12 +168,9 @@ const ViewAnimalsScreen = ({route}) => {
       });
     }
 
-    console.log('FORM DATA PREVIEW: ', payload._parts);
-
     try {
-      await createAnimal(payload); // Uses axios, which handles boundary automatically
-      setOpenModal(false); // close modal
-      // reload animals
+      await createAnimal(payload);
+      setOpenModal(false);
       const animals = await fetchAnimals(farmId);
       setLivestockData(prev => ({...prev, rawList: animals}));
     } catch (error) {
@@ -197,12 +178,9 @@ const ViewAnimalsScreen = ({route}) => {
     }
   };
 
-  const handleModalClose = () => {
-    setOpenModal(false);
-  };
-
-  const handleCategoryClick = query => {
-    console.log('Filter:', query);
+  const toggleExpand = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setExpanded(!expanded);
   };
 
   useEffect(() => {
@@ -245,7 +223,6 @@ const ViewAnimalsScreen = ({route}) => {
           if (cat.includes('dry')) summary.dry++;
         });
 
-        // setLivestockData(summary);
         setLivestockData({...summary, rawList: animals});
       } catch (error) {
         console.error('Failed to fetch livestock data', error);
@@ -253,7 +230,6 @@ const ViewAnimalsScreen = ({route}) => {
         setLoading(false);
       }
     };
-
     loadAnimals();
   }, [farmId]);
 
@@ -266,61 +242,60 @@ const ViewAnimalsScreen = ({route}) => {
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        ListHeaderComponent={
-          <>
-            <Text style={styles.header}>Livestock Summary</Text>
-            <View style={styles.grid}>
-              {categories.map((item, index) => (
-                <TouchableOpacity
-                  key={index}
-                  style={styles.card}
-                  onPress={() => handleCategoryClick(item.query || '')}>
-                  <View style={styles.iconRow}>
-                    <Icon
-                      name={item.icon}
-                      size={18}
-                      color={item.key === 'sickCows' ? 'red' : '#ffa500'}
-                      onLayout={() => console.log('Rendering icon:', item.icon)}
-                    />
-                    <Text style={styles.cardTitle}> {item.label}</Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.count,
-                      item.key === 'sickCows' && {color: 'red'},
-                    ]}>
-                    {livestockData?.[item.key] ?? 0}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+    <View style={{flex: 1, backgroundColor: '#fff'}}>
+      <ScrollView
+        contentContainerStyle={{padding: 16, paddingBottom: 60}}
+        showsVerticalScrollIndicator={false}>
+        {/* Livestock Summary Dropdown */}
+        <TouchableOpacity style={styles.headerButton} onPress={toggleExpand}>
+          <Text style={styles.headerButtonText}>Livestock Summary</Text>
+          <Icon
+            name={expanded ? 'chevron-up' : 'chevron-down'}
+            size={22}
+            color="#ffa500"
+          />
+        </TouchableOpacity>
 
-              {/* Add Animal Card */}
-              <TouchableOpacity
-                style={styles.card}
-                onPress={() => setOpenModal(true)}>
+        {expanded && (
+          <View style={styles.grid}>
+            {categories.map((item, index) => (
+              <View key={index} style={styles.card}>
                 <View style={styles.iconRow}>
-                  <Icon name="plus" size={18} color="#ffa500" />
-                  <Text style={styles.cardTitle}> Add Animal</Text>
+                  <Icon
+                    name={item.icon}
+                    size={16}
+                    color={item.key === 'sickCows' ? 'red' : '#ffa500'}
+                  />
+                  <Text style={styles.cardTitle}> {item.label}</Text>
                 </View>
-                <Text style={[styles.count, {color: '#ffa500'}]}>+</Text>
-              </TouchableOpacity>
-            </View>
+                <Text
+                  style={[
+                    styles.count,
+                    item.key === 'sickCows' && {color: 'red'},
+                  ]}>
+                  {livestockData?.[item.key] ?? 0}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
 
-            {/* Animal Table */}
-            <AnimalTable animals={livestockData?.rawList || []} />
-          </>
-        }
-        data={[]} // No actual list items needed here, we just use ListHeaderComponent
-        renderItem={null}
-        keyExtractor={() => 'empty'} // Avoid FlatList warning
-      />
+        {/* Add Animal Button */}
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setOpenModal(true)}>
+          <Icon name="plus" size={18} color="#fff" />
+          <Text style={styles.addText}>Add Animal</Text>
+        </TouchableOpacity>
+
+        {/* Scrollable Animal List */}
+        <AnimalTable animals={livestockData?.rawList || []} />
+      </ScrollView>
 
       {/* Add Animal Modal */}
       <AddAnimalModal
         visible={openModal}
-        onClose={handleModalClose}
+        onClose={() => setOpenModal(false)}
         formData={formData}
         formErrors={formErrors}
         handleFormChange={handleFormChange}
@@ -332,48 +307,44 @@ const ViewAnimalsScreen = ({route}) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-  },
-  loading: {
-    flex: 1,
-    justifyContent: 'center',
+  loading: {flex: 1, justifyContent: 'center', alignItems: 'center'},
+  headerButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#333333',
+    padding: 14,
+    borderRadius: 8,
     alignItems: 'center',
+    marginBottom: 2,
   },
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1a3c34',
-    marginBottom: 16,
-  },
+  headerButtonText: {color: '#ffa500', fontWeight: 'bold', fontSize: 16},
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    marginTop: 10,
   },
   card: {
     width: '48%',
     backgroundColor: '#f9f9f9',
     borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
+    padding: 10,
+    marginBottom: 12,
     elevation: 2,
   },
-  cardTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-    marginLeft: 4,
-  },
-  count: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  iconRow: {
+  cardTitle: {fontSize: 12, fontWeight: '600', color: '#333', marginLeft: 4},
+  count: {fontSize: 16, fontWeight: 'bold', color: '#000'},
+  iconRow: {flexDirection: 'row', alignItems: 'center'},
+  addButton: {
     flexDirection: 'row',
+    backgroundColor: '#3bca47ff',
+    padding: 12,
+    borderRadius: 8,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 6,
   },
+  addText: {color: '#fff', fontWeight: 'bold', marginLeft: 6, fontSize: 14},
 });
 
 export default ViewAnimalsScreen;
