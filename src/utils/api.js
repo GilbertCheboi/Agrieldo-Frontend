@@ -645,7 +645,7 @@ export const requestVet = async (vetId, {message, signs, animalImage}) => {
     }
 
     const response = await fetch(
-      'http://192.168.100.4:8000/api/profiles/vet/request/',
+      'http://api.agrieldo.com/api/profiles/vet/request/',
       {
         method: 'POST',
         headers: {

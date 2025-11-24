@@ -1,4 +1,3 @@
-// MilkProductionForm.js
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -27,6 +26,8 @@ const MilkProductionForm = ({onClose}) => {
       try {
         const data = await fetchLactatingAnimals();
         setLactatingAnimals(data);
+
+        // 🔹 Initialize entries without feed field
         setEntries(
           data.map(animal => ({
             animal: animal.id,
@@ -34,7 +35,6 @@ const MilkProductionForm = ({onClose}) => {
             date,
             session: 'MORNING',
             milk_yield: '',
-            feed_consumption: '',
             scc: '',
             fat_percentage: '',
             protein_percentage: '',
@@ -67,10 +67,14 @@ const MilkProductionForm = ({onClose}) => {
         session,
         date,
         milk_yield: Number(e.milk_yield) || 0,
-        feed_consumption: Number(e.feed_consumption) || 0,
-        scc: Number(e.scc) || 0,
-        fat_percentage: Number(e.fat_percentage) || 0,
-        protein_percentage: Number(e.protein_percentage) || 0,
+
+        // 🔹 OPTIONAL fields → send null if empty
+        scc: e.scc ? Number(e.scc) : null,
+        fat_percentage: e.fat_percentage ? Number(e.fat_percentage) : null,
+        protein_percentage: e.protein_percentage
+          ? Number(e.protein_percentage)
+          : null,
+
         milk_price_per_liter: Number(milkPrice) || 0,
       }));
 
@@ -98,7 +102,7 @@ const MilkProductionForm = ({onClose}) => {
     <ScrollView style={styles.container}>
       <Text style={styles.title}>Record Milk Production</Text>
 
-      {/* Date Input */}
+      {/* Date */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Date</Text>
         <TextInput
@@ -106,25 +110,20 @@ const MilkProductionForm = ({onClose}) => {
           onChangeText={setDate}
           style={styles.input}
           placeholder="YYYY-MM-DD"
-          placeholderTextColor="#888"
+          placeholderTextColor="#888" // 👈 Added
         />
       </View>
 
-      {/* Session Picker */}
+      {/* Session */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Session</Text>
-
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={session}
             onValueChange={val => setSession(val)}
-            dropdownIconColor="#2e7d32" // ✅ Makes the dropdown arrow visible
-            style={{color: session ? '#000' : '#888'}} // ✅ Visible text
-          >
-            {/* Placeholder */}
+            style={{color: session === '' ? '#888' : '#000'}} // 👈 Fix placeholder visibility
+            dropdownIconColor="#888">
             <Picker.Item label="-- Select Session --" value="" color="#888" />
-
-            {/* Options */}
             <Picker.Item label="Morning" value="MORNING" />
             <Picker.Item label="Afternoon" value="AFTERNOON" />
             <Picker.Item label="Evening" value="EVENING" />
@@ -141,52 +140,43 @@ const MilkProductionForm = ({onClose}) => {
           keyboardType="numeric"
           style={styles.input}
           placeholder="Enter price in KES"
-          placeholderTextColor="#888"
+          placeholderTextColor="#888" // 👈 Added
         />
       </View>
 
-      {/* Animal Entries */}
       <Text style={styles.sectionTitle}>Animals</Text>
+
       {entries.length === 0 ? (
         <Text style={styles.noDataText}>No lactating animals found.</Text>
       ) : (
         entries.map((entry, index) => (
           <View key={index} style={styles.card}>
             <Text style={styles.animalName}>{entry.animal_name}</Text>
+
+            {/* Only Milk, SCC, Fat %, Protein % */}
             <View style={styles.row}>
               <View style={styles.column}>
                 <TextInput
                   placeholder="Milk Yield (L)"
-                  placeholderTextColor="#888"
+                  placeholderTextColor="#888" // 👈 Added
                   keyboardType="numeric"
                   value={entry.milk_yield}
                   onChangeText={val => handleChange(index, 'milk_yield', val)}
                   style={styles.inputSmall}
                 />
+
                 <TextInput
-                  placeholder="Feed (kg)"
-                  placeholderTextColor="#888"
-                  keyboardType="numeric"
-                  value={entry.feed_consumption}
-                  onChangeText={val =>
-                    handleChange(index, 'feed_consumption', val)
-                  }
-                  style={styles.inputSmall}
-                />
-                <TextInput
-                  placeholder="SCC"
-                  placeholderTextColor="#888"
+                  placeholder="SCC (optional)"
+                  placeholderTextColor="#888" // 👈 Added
                   keyboardType="numeric"
                   value={entry.scc}
                   onChangeText={val => handleChange(index, 'scc', val)}
                   style={styles.inputSmall}
                 />
-              </View>
 
-              <View style={styles.column}>
                 <TextInput
-                  placeholder="Fat %"
-                  placeholderTextColor="#888"
+                  placeholder="Fat % (optional)"
+                  placeholderTextColor="#888" // 👈 Added
                   keyboardType="numeric"
                   value={entry.fat_percentage}
                   onChangeText={val =>
@@ -195,8 +185,8 @@ const MilkProductionForm = ({onClose}) => {
                   style={styles.inputSmall}
                 />
                 <TextInput
-                  placeholder="Protein %"
-                  placeholderTextColor="#888"
+                  placeholder="Protein % (optional)"
+                  placeholderTextColor="#888" // 👈 Added
                   keyboardType="numeric"
                   value={entry.protein_percentage}
                   onChangeText={val =>
@@ -210,11 +200,12 @@ const MilkProductionForm = ({onClose}) => {
         ))
       )}
 
-      {/* Action Buttons */}
+      {/* Buttons */}
       <View style={styles.actions}>
         <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
           <Text style={styles.btnText}>Cancel</Text>
         </TouchableOpacity>
+
         <TouchableOpacity
           onPress={handleSubmit}
           style={styles.submitBtn}
@@ -229,7 +220,6 @@ const MilkProductionForm = ({onClose}) => {
     </ScrollView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {flex: 1, padding: 16, backgroundColor: '#f9f9f9'},
   title: {
@@ -317,4 +307,3 @@ const styles = StyleSheet.create({
 });
 
 export default MilkProductionForm;
-    
