@@ -42,7 +42,7 @@ const SignupScreen = ({navigation}) => {
       formData.append('user_type', userType); // stays as number
 
       await axios.post(
-        'http://95.179.245.72:8000/api/accounts/users/',
+        'http://api.agrieldo.com/api/accounts/users/',
         formData,
         {
           headers: {

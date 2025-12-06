@@ -31,7 +31,7 @@ const LoginScreen = () => {
       const cleanedPassword = password.trim();
 
       const response = await axios.post(
-        'http://95.179.245.72:8000/api/accounts/api/token/',
+        'http://api.agrieldo.com/api/accounts/api/token/',
         {
           username: cleanedUsername,
           password: cleanedPassword,
