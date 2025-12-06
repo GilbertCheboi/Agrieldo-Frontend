@@ -230,6 +230,7 @@ const ViewAnimalsScreen = ({route}) => {
         setLoading(false);
       }
     };
+
     loadAnimals();
   }, [farmId]);
 
@@ -258,6 +259,18 @@ const ViewAnimalsScreen = ({route}) => {
 
         {expanded && (
           <View style={styles.grid}>
+            {/* ✅ TOTAL ANIMALS CARD */}
+            <View style={styles.card}>
+              <View style={styles.iconRow}>
+                <Icon name="cow" size={16} color="#ffa500" />
+                <Text style={styles.cardTitle}> Total Animals</Text>
+              </View>
+              <Text style={styles.count}>
+                {livestockData?.rawList?.length || 0}
+              </Text>
+            </View>
+
+            {/* Existing category cards */}
             {categories.map((item, index) => (
               <View key={index} style={styles.card}>
                 <View style={styles.iconRow}>
@@ -292,7 +305,6 @@ const ViewAnimalsScreen = ({route}) => {
         <AnimalTable animals={livestockData?.rawList || []} />
       </ScrollView>
 
-      {/* Add Animal Modal */}
       <AddAnimalModal
         visible={openModal}
         onClose={() => setOpenModal(false)}

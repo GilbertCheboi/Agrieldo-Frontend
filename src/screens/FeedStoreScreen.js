@@ -226,11 +226,11 @@ const styles = StyleSheet.create({
   loadingText: {fontSize: 13, marginTop: 8, color: '#333'},
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#ffa500',
+    backgroundColor: '#333333',
     paddingVertical: 8,
   },
   headerCell: {
-    color: '#fff',
+    color: '#ffa500',
     fontWeight: 'bold',
     fontSize: 12,
     textAlign: 'center',

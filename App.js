@@ -8,10 +8,11 @@ import store from './store';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ✅ IMPORT CART PROVIDER
+// CONTEXTS
 import {CartProvider} from './src/context/CartContext';
+import {BillingProvider} from './src/context/BillingContext';
 
-// Firebase imports
+// Firebase
 import {getApp} from '@react-native-firebase/app';
 import {
   getMessaging,
@@ -21,34 +22,44 @@ import {
   setBackgroundMessageHandler,
 } from '@react-native-firebase/messaging';
 
-// Import screens
-import LoginScreen from './src/screens/LoginScreen';
-import SignupScreen from './src/screens/SignupScreen';
-import LandingPageScreen from './src/screens/LandingPageScreen';
+// NAVIGATORS
 import VetDrawerNavigator from './src/api/VetDrawerNavigator';
 import FarmerDrawerNavigator from './src/api/FarmerDrawerNavigator';
 import StaffDrawerNavigator from './src/api/StaffDrawerNavigator';
+
+// SCREENS
+import LoginScreen from './src/screens/LoginScreen';
+import SignupScreen from './src/screens/SignupScreen';
+import LandingPageScreen from './src/screens/LandingPageScreen';
+
 import VetRequestScreen from './src/screens/VetRequestScreen';
 import ViewAnimalsScreen from './src/screens/ViewAnimalsScreen';
 import AnimalFullProfile from './src/screens/AnimalFullProfile';
 import FarmDashboard from './src/screens/FarmDashboard';
 import ProductionHistoryScreen from './src/screens/ProductionHistoryScreen';
 import VetFarmsScreen from './src/screens/VetFarmsScreen';
+
 import FeedStoreScreen from './src/screens/FeedStoreScreen';
 import FarmTeamScreen from './src/screens/FarmTeamScreen';
 import FeedCategoriesScreen from './src/screens/FeedCategoriesScreen';
 import FeedProductsScreen from './src/screens/FeedProductsScreen';
 import FeedProductDetailScreen from './src/screens/FeedProductDetailScreen';
+
 import FeedActivityScreen from './src/screens/FeedActivityScreen';
 import CartScreen from './src/screens/CartScreen';
 import CheckoutScreen from './src/screens/CheckoutScreen';
 import OrderSuccessScreen from './src/screens/OrderSuccessScreen';
+
 import DrugCategoriesScreen from './src/screens/DrugCategoriesScreen';
 import DrugProductsScreen from './src/screens/DrugProductsScreen';
 import DrugProductDetailScreen from './src/screens/DrugProductDetailScreen';
+
 import SellAnimalScreen from './src/screens/SellAnimalScreen';
 import MarketListingsScreen from './src/screens/MarketListingsScreen';
 import MarketDetailsScreen from './src/screens/MarketDetailsScreen';
+
+import ManagerDrawerNavigator from './src/api/ManagerDrawerNavigator';
+import ClerkDrawerNavigator from './src/api/ClerkDrawerNavigator';
 
 const Stack = createStackNavigator();
 
@@ -62,11 +73,11 @@ export default function App() {
   const checkLoginStatus = async () => {
     try {
       const accessToken = await AsyncStorage.getItem('access_token');
-      const userType = await AsyncStorage.getItem('user_type');
+      const storedUserType = await AsyncStorage.getItem('user_type');
 
-      if (accessToken && userType) {
+      if (accessToken && storedUserType) {
         setIsLoggedIn(true);
-        setUserType(userType);
+        setUserType(storedUserType);
       } else {
         setIsLoggedIn(false);
       }
@@ -144,169 +155,191 @@ export default function App() {
 
   return (
     <Provider store={store}>
-      {/* ✅ CartProvider MUST wrap NavigationContainer */}
       <CartProvider>
-        <NavigationContainer style={{flex: 1, backgroundColor: '#ffffff'}}>
-          <GestureHandlerRootView style={{flex: 1, backgroundColor: '#ffffff'}}>
-            <Stack.Navigator initialRouteName="Login">
-              <Stack.Screen
-                name="LandingPageScreen"
-                component={LandingPageScreen}
-                options={{headerShown: false}}
-              />
+        <BillingProvider>
+          <NavigationContainer>
+            <GestureHandlerRootView style={{flex: 1}}>
+              <Stack.Navigator initialRouteName="LandingPageScreen">
+                <Stack.Screen
+                  name="LandingPageScreen"
+                  component={LandingPageScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="Login"
-                component={LoginScreen}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="Login"
+                  component={LoginScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="Signup"
-                component={SignupScreen}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="Signup"
+                  component={SignupScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="FeedActivity"
-                component={FeedActivityScreen}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="VetDrawerNavigator"
+                  component={VetDrawerNavigator}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="VetDrawerNavigator"
-                component={VetDrawerNavigator}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="StaffDrawerNavigator"
+                  component={StaffDrawerNavigator}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="StaffDrawerNavigator"
-                component={StaffDrawerNavigator}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="FarmerDrawerNavigator"
+                  component={FarmerDrawerNavigator}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="FarmerDrawerNavigator"
-                component={FarmerDrawerNavigator}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="FeedActivity"
+                  component={FeedActivityScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="FeedStoreScreen"
-                component={FeedStoreScreen}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="FeedStoreScreen"
+                  component={FeedStoreScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="FarmTeam"
-                component={FarmTeamScreen}
-                options={{headerShown: true}}
-              />
+                <Stack.Screen
+                  name="FarmTeam"
+                  component={FarmTeamScreen}
+                  options={{headerShown: true}}
+                />
 
-              <Stack.Screen
-                name="ProductionHistoryScreen"
-                component={ProductionHistoryScreen}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="ProductionHistoryScreen"
+                  component={ProductionHistoryScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="VetRequestScreen"
-                component={VetRequestScreen}
-                options={{headerShown: true}}
-              />
+                <Stack.Screen
+                  name="VetRequestScreen"
+                  component={VetRequestScreen}
+                  options={{headerShown: true}}
+                />
 
-              <Stack.Screen
-                name="VetFarmsScreen"
-                component={VetFarmsScreen}
-                options={{headerShown: true}}
-              />
+                <Stack.Screen
+                  name="VetFarmsScreen"
+                  component={VetFarmsScreen}
+                  options={{headerShown: true}}
+                />
 
-              <Stack.Screen
-                name="ViewAnimals"
-                component={ViewAnimalsScreen}
-                options={{headerShown: true}}
-              />
+                <Stack.Screen
+                  name="ViewAnimals"
+                  component={ViewAnimalsScreen}
+                  options={{headerShown: true}}
+                />
 
-              <Stack.Screen
-                name="AnimalProfile"
-                component={AnimalFullProfile}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="AnimalProfile"
+                  component={AnimalFullProfile}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="FarmDashboard"
-                component={FarmDashboard}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="FarmDashboard"
+                  component={FarmDashboard}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="FeedCategories"
-                component={FeedCategoriesScreen}
-                options={{headerShown: false}}
-              />
+                {/* FEED STORE SCREENS */}
+                <Stack.Screen
+                  name="FeedCategories"
+                  component={FeedCategoriesScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="FeedProducts"
-                component={FeedProductsScreen}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="FeedProducts"
+                  component={FeedProductsScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="FeedDetails"
-                component={FeedProductDetailScreen}
-                options={{headerShown: false}}
-              />
-              <Stack.Screen
-                name="Cart"
-                component={CartScreen}
-                options={{headerShown: false}}
-              />
-              <Stack.Screen
-                name="Checkout"
-                component={CheckoutScreen}
-                options={{headerShown: false}}
-              />
-              <Stack.Screen
-                name="OrderSuccess"
-                component={OrderSuccessScreen}
-                options={{headerShown: false}}
-              />
+                <Stack.Screen
+                  name="FeedDetails"
+                  component={FeedProductDetailScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="DrugCategories"
-                component={DrugCategoriesScreen}
-                options={{headerShown: true, title: 'Drug Categories'}}
-              />
+                {/* CART & CHECKOUT */}
+                <Stack.Screen
+                  name="Cart"
+                  component={CartScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="DrugProducts"
-                component={DrugProductsScreen}
-                options={{headerShown: true}}
-              />
+                <Stack.Screen
+                  name="Checkout"
+                  component={CheckoutScreen}
+                  options={{headerShown: false}}
+                />
 
-              <Stack.Screen
-                name="DrugDetails"
-                component={DrugProductDetailScreen}
-                options={{headerShown: false}}
-              />
-              <Stack.Screen
-                name="SellAnimal"
-                component={SellAnimalScreen}
-                options={{headerShown: true, title: 'Sell Animal'}}
-              />
-              <Stack.Screen
-                name="MarketListings"
-                component={MarketListingsScreen}
-                options={{headerShown: true, title: 'Market'}}
-              />
-              <Stack.Screen
-                name="MarketDetails"
-                component={MarketDetailsScreen}
-                options={{headerShown: false}}
-              />
-            </Stack.Navigator>
-          </GestureHandlerRootView>
-        </NavigationContainer>
+                <Stack.Screen
+                  name="OrderSuccess"
+                  component={OrderSuccessScreen}
+                  options={{headerShown: false}}
+                />
+
+                {/* DRUG STORE */}
+                <Stack.Screen
+                  name="DrugCategories"
+                  component={DrugCategoriesScreen}
+                  options={{headerShown: true, title: 'Drug Categories'}}
+                />
+
+                <Stack.Screen
+                  name="DrugProducts"
+                  component={DrugProductsScreen}
+                  options={{headerShown: true}}
+                />
+
+                <Stack.Screen
+                  name="DrugDetails"
+                  component={DrugProductDetailScreen}
+                  options={{headerShown: false}}
+                />
+
+                {/* MARKET */}
+                <Stack.Screen
+                  name="SellAnimal"
+                  component={SellAnimalScreen}
+                  options={{headerShown: true, title: 'Sell Animal'}}
+                />
+
+                <Stack.Screen
+                  name="MarketListings"
+                  component={MarketListingsScreen}
+                  options={{headerShown: true, title: 'Market'}}
+                />
+
+                <Stack.Screen
+                  name="MarketDetails"
+                  component={MarketDetailsScreen}
+                  options={{headerShown: false}}
+                />
+
+                <Stack.Screen
+                  name="ManagerDrawerNavigator"
+                  component={ManagerDrawerNavigator}
+                  options={{headerShown: false}}
+                />
+                <Stack.Screen
+                  name="ClerkDrawerNavigator"
+                  component={ClerkDrawerNavigator}
+                  options={{headerShown: false}}
+                />
+              </Stack.Navigator>
+            </GestureHandlerRootView>
+          </NavigationContainer>
+        </BillingProvider>
       </CartProvider>
     </Provider>
   );

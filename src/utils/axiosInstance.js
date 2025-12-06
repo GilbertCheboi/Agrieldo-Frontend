@@ -3,7 +3,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API = axios.create({
-  baseURL: 'http://95.179.245.72:8000/api/',
+  baseURL: 'http://api.agrieldo.com/api/',
   timeout: 10000,
 });
 

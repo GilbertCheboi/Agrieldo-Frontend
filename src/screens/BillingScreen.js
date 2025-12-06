@@ -1,142 +1,277 @@
-import React, {useState, useEffect} from 'react';
-import {View, Text, StyleSheet, ScrollView} from 'react-native';
+// BillingScreen.js
+
+import React, {useEffect, useState} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+
+import {
+  fetchBillingSummary,
+  startBillingPayment,
+  triggerMpesaStkPush,
+} from '../utils/api';
 
 const BillingScreen = () => {
-  const [invoices, setInvoices] = useState([]);
+  const [billing, setBilling] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Dummy data for invoices
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadBilling = async () => {
+    try {
+      const data = await fetchBillingSummary();
+      setBilling(data);
+    } catch (error) {
+      Alert.alert('Error', 'Unable to fetch billing summary.');
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchDummyInvoices = () => {
-      const dummyInvoices = [
-        {
-          id: 1,
-          description: 'Farm Equipment Purchase',
-          amount: 50000,
-          date: '2024-11-01',
-        },
-        {id: 2, description: 'Vet Services', amount: 15000, date: '2024-11-05'},
-        {
-          id: 3,
-          description: 'Milk Delivery Subscription',
-          amount: 20000,
-          date: '2024-11-10',
-        },
-        {id: 4, description: 'Feed Supply', amount: 12000, date: '2024-11-12'},
-        {
-          id: 5,
-          description: 'Farm Labor Costs',
-          amount: 30000,
-          date: '2024-11-15',
-        },
-      ];
-      setInvoices(dummyInvoices);
-    };
-
-    fetchDummyInvoices();
+    loadBilling();
   }, []);
 
-  // Format currency in KES
-  const formatKES = amount => `KES ${amount.toLocaleString()}`;
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadBilling().finally(() => setRefreshing(false));
+  };
+
+  const handlePayNow = async () => {
+    try {
+      const paymentData = await startBillingPayment();
+      const paymentId = paymentData?.payment_id;
+      const amount = paymentData?.amount;
+
+      if (!paymentId) {
+        return Alert.alert('Error', 'Failed to start payment.');
+      }
+
+      await triggerMpesaStkPush(
+        billing?.phone || '2547XXXXXXXX',
+        amount,
+        paymentId,
+      );
+
+      Alert.alert('STK Push Sent', 'Check your phone to complete payment.');
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Payment Error', 'Unable to process MPESA payment.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#ffa500" />
+      </View>
+    );
+  }
+
+  if (!billing) {
+    return (
+      <View style={styles.center}>
+        <Text style={{color: '#333'}}>Billing information not available.</Text>
+      </View>
+    );
+  }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header / Summary */}
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }>
+      {/* HEADER */}
       <View style={styles.headerCard}>
-        <Text style={styles.headerTitle}>Billing Overview</Text>
-        <Text style={styles.headerSubtitle}>
-          Recent invoices and transactions
+        <Text style={styles.headerTitle}>Subscription Overview</Text>
+        <Text style={styles.statusText}>
+          Status:{' '}
+          <Text
+            style={[
+              styles.statusValue,
+              billing.status === 'active'
+                ? styles.statusActive
+                : billing.status === 'limited'
+                ? styles.statusLimited
+                : styles.statusSuspended,
+            ]}>
+            {billing.status?.toUpperCase()}
+          </Text>
         </Text>
       </View>
 
-      <Text style={styles.heading}>Invoices</Text>
-      {invoices.map(invoice => (
-        <View key={invoice.id} style={styles.invoiceCard}>
-          <View style={styles.invoiceRow}>
-            <View style={styles.invoiceDetails}>
-              <Text style={styles.invoiceDesc}>{invoice.description}</Text>
-              <Text style={styles.invoiceDate}>{invoice.date}</Text>
-            </View>
-            <View style={styles.amountBadge}>
-              <Text style={styles.amountText}>{formatKES(invoice.amount)}</Text>
-            </View>
-          </View>
+      {/* FREE TRIAL */}
+      {!billing.free_trial_used && (
+        <View style={styles.freeTrialCard}>
+          <Icon name="gift" size={30} color="#fff" />
+          <Text style={styles.freeTrialText}>
+            🎉 Free Trial Active — Enjoy Full Access!
+          </Text>
         </View>
-      ))}
+      )}
+
+      {/* MAIN BILLING CARD */}
+      <View style={styles.infoCard}>
+        <View style={styles.row}>
+          <Icon name="cow" size={22} color="#ffa500" />
+          <Text style={styles.infoText}>Animals: {billing.animals}</Text>
+        </View>
+
+        <View style={styles.row}>
+          <Icon name="cash" size={22} color="#ffa500" />
+          <Text style={styles.infoText}>
+            Monthly Fee: KES {billing.monthly_fee}
+          </Text>
+        </View>
+
+        <View style={styles.row}>
+          <Icon name="clock-alert" size={22} color="#ffa500" />
+          <Text style={styles.infoText}>
+            Unpaid Months: {billing.unpaid_months}
+          </Text>
+        </View>
+
+        <View style={styles.separator} />
+
+        <View style={styles.row}>
+          <Icon name="wallet-outline" size={24} color="#ff6600" />
+          <Text style={styles.totalText}>
+            Total Due:{' '}
+            <Text style={styles.totalValue}>
+              KES {billing.outstanding_balance}
+            </Text>
+          </Text>
+        </View>
+
+        <Text style={styles.smallText}>
+          Next Billing Date: {billing.next_billing_date || '—'}
+        </Text>
+      </View>
+
+      {/* PAY BUTTON */}
+      {billing.status !== 'active' && (
+        <TouchableOpacity onPress={handlePayNow} style={styles.payBtn}>
+          <Icon name="cellphone-text" size={22} color="#fff" />
+          <Text style={styles.payBtnText}>Pay with M-PESA</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* MESSAGES */}
+      {billing.status === 'limited' && (
+        <Text style={styles.limitedText}>
+          ⚠ Your access is limited. Complete payment to restore full access.
+        </Text>
+      )}
+
+      {billing.status === 'suspended' && (
+        <Text style={styles.suspendedText}>
+          ❌ Subscription suspended. Payment required to continue using
+          Agrieldo.
+        </Text>
+      )}
+
+      <View style={{height: 40}} />
     </ScrollView>
   );
 };
 
+// ----------------------------
+// MODERN STYLES
+// ----------------------------
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f4f9',
+    backgroundColor: '#f2f4f7',
     padding: 16,
   },
+
+  center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
+
+  // Header
   headerCard: {
-    backgroundColor: '#ffa500',
+    backgroundColor: '#ffffff',
     padding: 20,
-    borderRadius: 12,
-    marginBottom: 20,
+    borderRadius: 16,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
+    marginBottom: 18,
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#fff',
-    marginTop: 4,
-  },
-  heading: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 12,
-    marginLeft: 4,
+    fontWeight: '700',
+    color: '#222',
+    marginBottom: 6,
   },
-  invoiceCard: {
-    backgroundColor: '#fff',
+  statusText: {fontSize: 16, color: '#444'},
+  statusValue: {fontWeight: '700'},
+  statusActive: {color: 'green'},
+  statusLimited: {color: '#ff9900'},
+  statusSuspended: {color: 'red'},
+
+  // Free trial box
+  freeTrialCard: {
+    backgroundColor: '#34a853',
     padding: 16,
-    borderRadius: 10,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  invoiceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderRadius: 16,
+    marginBottom: 20,
     alignItems: 'center',
   },
-  invoiceDetails: {
-    flex: 1,
+  freeTrialText: {color: '#fff', fontWeight: '600', marginTop: 8},
+
+  // Main content card
+  infoCard: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 16,
+    elevation: 2,
+    shadowColor: '#999',
+    marginBottom: 20,
   },
-  invoiceDesc: {
-    fontSize: 16,
+  row: {flexDirection: 'row', alignItems: 'center', marginBottom: 12},
+  infoText: {marginLeft: 10, fontSize: 16, color: '#333'},
+  totalText: {marginLeft: 10, fontSize: 18, fontWeight: '700'},
+  totalValue: {color: '#ff6600'},
+  smallText: {color: '#666', marginTop: 8, fontSize: 13},
+  separator: {
+    height: 1,
+    backgroundColor: '#ddd',
+    marginVertical: 12,
+  },
+
+  // Pay button
+  payBtn: {
+    flexDirection: 'row',
+    backgroundColor: '#0B9444',
+    padding: 16,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  payBtnText: {color: '#fff', fontSize: 17, fontWeight: '700'},
+
+  // Status texts
+  limitedText: {
+    marginTop: 15,
+    color: '#ff9900',
     fontWeight: '600',
-    color: '#333',
+    textAlign: 'center',
   },
-  invoiceDate: {
-    fontSize: 13,
-    color: '#888',
-    marginTop: 4,
-  },
-  amountBadge: {
-    backgroundColor: 'rgba(255,165,0,0.1)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-  },
-  amountText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#ffa500',
+  suspendedText: {
+    marginTop: 15,
+    color: 'red',
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });
 

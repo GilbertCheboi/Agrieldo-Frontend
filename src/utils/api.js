@@ -1,4 +1,4 @@
-// File: src/services/api.js
+// File: src/utils/api.js
 
 import API from './axiosInstance'; // Configured Axios instance for React Native
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -222,15 +222,34 @@ export const fetchDailyFeedVsMilkRevenue = async (
     return [];
   }
 };
-
 export const fetchAnimals = async farmId => {
   try {
-    const response = await API.get(
-      `/farms/${farmId}/animals/`,
-      getAuthHeaders(),
-    );
-    console.log(`Fetched Animals Data for farm ${farmId}:`, response.data);
-    return response.data;
+    let url = `/farms/${farmId}/animals/`;
+    let allAnimals = [];
+
+    while (url) {
+      const response = await API.get(url, getAuthHeaders());
+      const data = response.data;
+
+      // CASE 1: API returns a plain array (non-paginated)
+      if (Array.isArray(data)) {
+        allAnimals = data;
+        break; // no pagination
+      }
+
+      // CASE 2: API returns paginated DRF response
+      if (data.results) {
+        allAnimals = [...allAnimals, ...data.results];
+
+        url = data.next ? data.next.replace(API.defaults.baseURL, '') : null;
+      } else {
+        // Unexpected format — break cleanly
+        break;
+      }
+    }
+
+    console.log(`Fetched Animals for farm ${farmId}:`, allAnimals.length);
+    return allAnimals;
   } catch (error) {
     console.error(
       `Error fetching animals for farm ${farmId}:`,
@@ -755,7 +774,7 @@ export const declineVetRequest = async requestId => {
  * -------------------------------
  */
 
-const CHAT_BASE_URL = 'http://95.179.245.72:8000/api/AI_Chat'; // Update to your actual domain/base
+const CHAT_BASE_URL = 'http://api.agrieldo.com/api/AI_Chat'; // Update to your actual domain/base
 
 /**
  * List all chat sessions for the authenticated user.
@@ -1053,4 +1072,124 @@ export const removeFarmVet = async (farmId, userId) => {
     console.error('Error removing vet:', error);
     throw error;
   }
+};
+
+export const fetchBillingSummary = async () => {
+  try {
+    const response = await API.get('/billing/summary/', getAuthHeaders());
+    return response.data;
+  } catch (error) {
+    console.error(
+      'Error fetching billing summary:',
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+export const startBillingPayment = async () => {
+  try {
+    const response = await API.post('/billing/pay/', {}, getAuthHeaders());
+    return response.data; // contains payment_id + amount
+  } catch (error) {
+    console.error(
+      'Error starting billing payment:',
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+export const triggerMpesaStkPush = async (phone, amount, paymentId) => {
+  try {
+    const response = await API.post(
+      '/orders/mpesa/stkpush/',
+      {
+        phone,
+        amount,
+        payment_id: paymentId,
+      },
+      getAuthHeaders(),
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      'Error triggering MPESA STK Push:',
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+export const triggerUnifiedOrderStkPush = async (
+  phone,
+  amount,
+  unifiedOrderId,
+) => {
+  try {
+    const response = await API.post(
+      '/orders/mpesa/stkpush/',
+      {
+        phone,
+        amount,
+        unified_order: unifiedOrderId,
+      },
+      getAuthHeaders(),
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      'Error triggering unified order MPESA:',
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+export const getCooperativeDetails = async coopId => {
+  const headers = await getAuthHeaders();
+  const response = await API.get(`cooperatives/details/${coopId}/`, headers);
+  return response.data;
+};
+
+export const getCooperativeFarmers = async coopId => {
+  const headers = await getAuthHeaders();
+  const response = await API.get(`cooperatives/farmers/${coopId}/`, headers);
+  return response.data;
+};
+
+export const getMilkRecords = async (coopId, date) => {
+  const headers = await getAuthHeaders();
+  const response = await API.get(
+    `cooperatives/milk/records/${coopId}/?date=${date}`,
+    headers,
+  );
+  return response.data;
+};
+
+export const createMilkRecord = async payload => {
+  const headers = await getAuthHeaders();
+  const response = await API.post(
+    `cooperatives/milk/create/`,
+    payload,
+    headers,
+  );
+  return response.data;
+};
+
+export const updateMilkRecord = async (recordId, payload) => {
+  const headers = await getAuthHeaders();
+  const response = await API.patch(
+    `cooperatives/milk/update/${recordId}/`,
+    payload,
+    headers,
+  );
+  return response.data;
+};
+
+export const deleteMilkRecord = async recordId => {
+  const headers = await getAuthHeaders();
+  const response = await API.delete(
+    `cooperatives/milk/delete/${recordId}/`,
+    headers,
+  );
+  return response.data;
 };

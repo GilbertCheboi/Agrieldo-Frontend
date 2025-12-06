@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {useNavigation, useFocusEffect} from '@react-navigation/native';
 import {request, check, PERMISSIONS, RESULTS} from 'react-native-permissions';
+import BillingGuard from '../components/BillingGuard';
 
 export default function VetRequestPermissionScreen() {
   const navigation = useNavigation();
@@ -81,20 +82,22 @@ export default function VetRequestPermissionScreen() {
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Why We Need Location Access</Text>
-      <Text style={styles.body}>
-        Agrieldo uses your location to connect you with veterinarians. When you
-        request a vet, your farm’s real-time location is shared so they can find
-        you quickly.
-      </Text>
-      <Text style={styles.body}>
-        Location access is only used while you are requesting a vet. We do not
-        track you in the background.
-      </Text>
+    <BillingGuard>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Why We Need Location Access</Text>
+        <Text style={styles.body}>
+          Agrieldo uses your location to connect you with veterinarians. When
+          you request a vet, your farm’s real-time location is shared so they
+          can find you quickly.
+        </Text>
+        <Text style={styles.body}>
+          Location access is only used while you are requesting a vet. We do not
+          track you in the background.
+        </Text>
 
-      <Button title="Allow Location Access" onPress={requestPermissions} />
-    </ScrollView>
+        <Button title="Allow Location Access" onPress={requestPermissions} />
+      </ScrollView>
+    </BillingGuard>
   );
 }
 

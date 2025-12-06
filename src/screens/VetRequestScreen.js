@@ -10,7 +10,7 @@ const VetRequestScreen = () => {
   useEffect(() => {
     // Fetch the requests from the backend
     axios
-      .get(' http://192.168.100.4:8000/api/vet/requests')
+      .get(' http://api.agrieldo.com/api/vet/requests')
       .then(response => setRequests(response.data))
       .catch(error => console.error(error));
   }, []);

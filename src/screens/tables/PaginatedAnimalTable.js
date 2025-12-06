@@ -51,7 +51,7 @@ const AnimalTable = ({animals}) => {
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View style={styles.table}>
           <TableHeader />
-          {/* Vertical Scroll for animal list */}
+
           <FlatList
             data={animals}
             keyExtractor={(item, index) =>
@@ -59,10 +59,7 @@ const AnimalTable = ({animals}) => {
             }
             renderItem={TableRow}
             showsVerticalScrollIndicator={true}
-            style={{maxHeight: 500}} // limit visible height (adjust if needed)
-            ListEmptyComponent={
-              <Text style={styles.emptyText}>No animals found.</Text>
-            }
+            nestedScrollEnabled={true}
           />
         </View>
       </ScrollView>

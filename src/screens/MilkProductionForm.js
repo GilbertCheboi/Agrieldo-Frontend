@@ -1,3 +1,4 @@
+// MilkProductionForm.js
 import React, {useState, useEffect} from 'react';
 import {
   View,
@@ -16,7 +17,7 @@ const MilkProductionForm = ({onClose}) => {
   const [lactatingAnimals, setLactatingAnimals] = useState([]);
   const [entries, setEntries] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [session, setSession] = useState('MORNING');
+  const [session, setSession] = useState(''); // EMPTY for placeholder to show
   const [milkPrice, setMilkPrice] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
@@ -27,13 +28,12 @@ const MilkProductionForm = ({onClose}) => {
         const data = await fetchLactatingAnimals();
         setLactatingAnimals(data);
 
-        // 🔹 Initialize entries without feed field
         setEntries(
           data.map(animal => ({
             animal: animal.id,
             animal_name: animal.name,
             date,
-            session: 'MORNING',
+            session: '',
             milk_yield: '',
             scc: '',
             fat_percentage: '',
@@ -67,14 +67,11 @@ const MilkProductionForm = ({onClose}) => {
         session,
         date,
         milk_yield: Number(e.milk_yield) || 0,
-
-        // 🔹 OPTIONAL fields → send null if empty
         scc: e.scc ? Number(e.scc) : null,
         fat_percentage: e.fat_percentage ? Number(e.fat_percentage) : null,
         protein_percentage: e.protein_percentage
           ? Number(e.protein_percentage)
           : null,
-
         milk_price_per_liter: Number(milkPrice) || 0,
       }));
 
@@ -100,6 +97,11 @@ const MilkProductionForm = ({onClose}) => {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Back Button */}
+      <TouchableOpacity onPress={onClose} style={styles.backButton}>
+        <Text style={styles.backButtonText}>← Back</Text>
+      </TouchableOpacity>
+
       <Text style={styles.title}>Record Milk Production</Text>
 
       {/* Date */}
@@ -110,7 +112,7 @@ const MilkProductionForm = ({onClose}) => {
           onChangeText={setDate}
           style={styles.input}
           placeholder="YYYY-MM-DD"
-          placeholderTextColor="#888" // 👈 Added
+          placeholderTextColor="#888"
         />
       </View>
 
@@ -121,7 +123,7 @@ const MilkProductionForm = ({onClose}) => {
           <Picker
             selectedValue={session}
             onValueChange={val => setSession(val)}
-            style={{color: session === '' ? '#888' : '#000'}} // 👈 Fix placeholder visibility
+            style={{color: session === '' ? '#888' : '#000'}}
             dropdownIconColor="#888">
             <Picker.Item label="-- Select Session --" value="" color="#888" />
             <Picker.Item label="Morning" value="MORNING" />
@@ -140,7 +142,7 @@ const MilkProductionForm = ({onClose}) => {
           keyboardType="numeric"
           style={styles.input}
           placeholder="Enter price in KES"
-          placeholderTextColor="#888" // 👈 Added
+          placeholderTextColor="#888"
         />
       </View>
 
@@ -153,12 +155,11 @@ const MilkProductionForm = ({onClose}) => {
           <View key={index} style={styles.card}>
             <Text style={styles.animalName}>{entry.animal_name}</Text>
 
-            {/* Only Milk, SCC, Fat %, Protein % */}
             <View style={styles.row}>
               <View style={styles.column}>
                 <TextInput
                   placeholder="Milk Yield (L)"
-                  placeholderTextColor="#888" // 👈 Added
+                  placeholderTextColor="#888"
                   keyboardType="numeric"
                   value={entry.milk_yield}
                   onChangeText={val => handleChange(index, 'milk_yield', val)}
@@ -167,7 +168,7 @@ const MilkProductionForm = ({onClose}) => {
 
                 <TextInput
                   placeholder="SCC (optional)"
-                  placeholderTextColor="#888" // 👈 Added
+                  placeholderTextColor="#888"
                   keyboardType="numeric"
                   value={entry.scc}
                   onChangeText={val => handleChange(index, 'scc', val)}
@@ -176,7 +177,7 @@ const MilkProductionForm = ({onClose}) => {
 
                 <TextInput
                   placeholder="Fat % (optional)"
-                  placeholderTextColor="#888" // 👈 Added
+                  placeholderTextColor="#888"
                   keyboardType="numeric"
                   value={entry.fat_percentage}
                   onChangeText={val =>
@@ -184,9 +185,10 @@ const MilkProductionForm = ({onClose}) => {
                   }
                   style={styles.inputSmall}
                 />
+
                 <TextInput
                   placeholder="Protein % (optional)"
-                  placeholderTextColor="#888" // 👈 Added
+                  placeholderTextColor="#888"
                   keyboardType="numeric"
                   value={entry.protein_percentage}
                   onChangeText={val =>
@@ -200,7 +202,6 @@ const MilkProductionForm = ({onClose}) => {
         ))
       )}
 
-      {/* Buttons */}
       <View style={styles.actions}>
         <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
           <Text style={styles.btnText}>Cancel</Text>
@@ -220,15 +221,35 @@ const MilkProductionForm = ({onClose}) => {
     </ScrollView>
   );
 };
+
 const styles = StyleSheet.create({
   container: {flex: 1, padding: 16, backgroundColor: '#f9f9f9'},
+
+  backButton: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: '#333333',
+    borderRadius: 6,
+    zIndex: 10,
+  },
+  backButtonText: {
+    color: '#ffa500',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     color: '#ffa500',
     marginBottom: 14,
     textAlign: 'center',
+    marginTop: 40,
   },
+
   label: {fontWeight: 'bold', marginBottom: 4, color: '#333'},
   sectionTitle: {
     fontSize: 18,
@@ -236,6 +257,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     color: '#ffa500',
   },
+
   inputGroup: {marginBottom: 12},
   input: {
     borderWidth: 1,
@@ -245,6 +267,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     color: '#000',
   },
+
   pickerWrapper: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -252,6 +275,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#fff',
   },
+
   card: {
     backgroundColor: '#fff',
     borderRadius: 10,
@@ -262,14 +286,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
+
   animalName: {
     fontWeight: 'bold',
     fontSize: 16,
     color: '#ffa500',
     marginBottom: 6,
   },
+
   row: {flexDirection: 'row', justifyContent: 'space-between'},
   column: {flex: 1},
+
   inputSmall: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -280,11 +307,13 @@ const styles = StyleSheet.create({
     color: '#000',
     marginHorizontal: 4,
   },
+
   actions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 20,
   },
+
   cancelBtn: {
     backgroundColor: '#ccc',
     padding: 12,
@@ -293,16 +322,21 @@ const styles = StyleSheet.create({
     marginRight: 6,
     alignItems: 'center',
   },
+
   submitBtn: {
     backgroundColor: '#ffa500',
     padding: 12,
     borderRadius: 8,
     flex: 1,
     marginLeft: 6,
+    alignActors: 'center',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   btnText: {color: '#fff', fontWeight: 'bold', fontSize: 16},
+
   noDataText: {textAlign: 'center', color: '#888', marginTop: 20},
+
   center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
 });
 

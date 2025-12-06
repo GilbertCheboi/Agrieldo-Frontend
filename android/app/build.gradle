@@ -36,8 +36,8 @@ android {
         applicationId "com.agrieldo"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 21
-        versionName "1.0.21"
+        versionCode 22
+        versionName "1.0.22"
 
         // Disable debug symbols in release (saves HUGE size)
         ndk {

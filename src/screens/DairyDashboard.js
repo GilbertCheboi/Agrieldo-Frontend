@@ -11,7 +11,7 @@ import {
   fetchDailyTotals,
   fetchDailyFeedVsMilkRevenue,
   fetchLactatingAnimals,
-} from '../utils/api'; // ✅ ADDED THIS
+} from '../utils/api';
 
 import MilkProductionChart from '../components/MilkProductionChart';
 import FeedVsMilkRevenueChart from '../components/FeedVsMilkRevenueChart';
@@ -30,7 +30,7 @@ const DairyDashboard = ({farmId}) => {
   const [dashboardData, setDashboardData] = useState({
     milkToday: 0,
     averageYield: 0,
-    lactatingAnimals: 0, // stays here
+    lactatingAnimals: 0,
     milkRevenueThisMonth: 0,
     feedCostThisMonth: 0,
   });
@@ -53,8 +53,8 @@ const DairyDashboard = ({farmId}) => {
         const startStr = startDate.toISOString().split('T')[0];
         const endStr = today.toISOString().split('T')[0];
 
-        // Fetch dashboard data
         const fetchedDailyTotals = await fetchDailyTotals(startStr, endStr);
+
         const revenueStartDate = new Date();
         revenueStartDate.setDate(revenueStartDate.getDate() - 30);
 
@@ -64,13 +64,11 @@ const DairyDashboard = ({farmId}) => {
           endStr,
         );
 
-        // Fetch lactating animals
-        const lactatingList = await fetchLactatingAnimals(); // ✅ NEW
+        const lactatingList = await fetchLactatingAnimals();
         const lactatingCount = Array.isArray(lactatingList)
           ? lactatingList.length
           : 0;
 
-        // --- SANITIZE DAILY TOTALS ---
         const safeDaily = Array.isArray(fetchedDailyTotals)
           ? fetchedDailyTotals
           : [];
@@ -89,7 +87,6 @@ const DairyDashboard = ({farmId}) => {
           total_scc: Number(entry?.total_scc) || 0,
         }));
 
-        // --- SANITIZE REVENUE DATA ---
         const safeRevenue = Array.isArray(fetchedRevenueData)
           ? fetchedRevenueData
           : [];
@@ -105,7 +102,6 @@ const DairyDashboard = ({farmId}) => {
         setDailyTotals(sanitizedDaily);
         setRevenueData(sanitizedRevenue);
 
-        // Calculate milkToday and avg
         const todayStr = today.toISOString().split('T')[0];
         const milkToday =
           sanitizedDaily.find(d => d.date === todayStr)?.total_milk_yield || 0;
@@ -116,12 +112,11 @@ const DairyDashboard = ({farmId}) => {
               sanitizedDaily.length
             : 0;
 
-        // --- UPDATE DASHBOARD DATA ---
         setDashboardData(prev => ({
           ...prev,
           milkToday,
           averageYield: avgMilk,
-          lactatingAnimals: lactatingCount, // ✅ NEW
+          lactatingAnimals: lactatingCount,
           milkRevenueThisMonth: sanitizedRevenue.reduce(
             (sum, e) => sum + (e.milk_revenue || 0),
             0,
@@ -161,7 +156,7 @@ const DairyDashboard = ({farmId}) => {
       <View style={styles.titleSection}>
         <Text style={styles.sectionTitle}>Dairy Dashboard</Text>
 
-        {/* Navigation Button */}
+        {/* Keep ONLY View Animals button at top */}
         <View style={styles.buttonStack}>
           <TouchableOpacity
             onPress={() => navigation.navigate('ViewAnimals', {farmId})}
@@ -173,9 +168,11 @@ const DairyDashboard = ({farmId}) => {
 
       {/* Stats */}
       <Text style={styles.value}>{safeFixed(dashboardData.milkToday)} L</Text>
+
       <Text style={styles.subText}>
         Avg Yield/Day: {safeFixed(dashboardData.averageYield)} L
       </Text>
+
       <Text style={styles.subText}>
         Lactating Cows: {dashboardData.lactatingAnimals}
       </Text>
@@ -183,9 +180,11 @@ const DairyDashboard = ({farmId}) => {
       <Text style={styles.subText}>
         Milk Revenue: Ksh. {safeFixed(dashboardData.milkRevenueThisMonth, 2)}
       </Text>
+
       <Text style={styles.subText}>
         Feed Cost: Ksh. {safeFixed(dashboardData.feedCostThisMonth, 2)}
       </Text>
+
       <Text style={styles.subText}>
         Profit: Ksh.{' '}
         {safeFixed(
@@ -194,6 +193,23 @@ const DairyDashboard = ({farmId}) => {
           2,
         )}
       </Text>
+
+      {/* 
+        ------------------------------------------------------
+        ✅ PRODUCTION HISTORY BUTTON MOVED HERE
+        ------------------------------------------------------
+      */}
+      <View style={styles.buttonStack}>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('ProductionHistoryScreen', {
+              farmId,
+            })
+          }
+          style={styles.smallButton}>
+          <Text style={styles.smallButtonText}>Production History</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Milk Chart */}
       <View style={styles.card}>

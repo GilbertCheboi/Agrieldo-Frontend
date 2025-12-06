@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import {getMarketListings} from '../utils/api';
+import BillingGuard from '../components/BillingGuard';
 
 const MarketListingsScreen = ({navigation}) => {
   const [listings, setListings] = useState([]);
@@ -94,16 +95,18 @@ const MarketListingsScreen = ({navigation}) => {
   );
 
   return (
-    <FlatList
-      data={listings}
-      renderItem={renderItem}
-      keyExtractor={item => item.id.toString()}
-      numColumns={2}
-      contentContainerStyle={styles.listContainer}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-      }
-    />
+    <BillingGuard>
+      <FlatList
+        data={listings}
+        renderItem={renderItem}
+        keyExtractor={item => item.id.toString()}
+        numColumns={2}
+        contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      />
+    </BillingGuard>
   );
 };
 

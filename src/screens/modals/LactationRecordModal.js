@@ -89,7 +89,7 @@ const LactationRecordModal = ({
           )}
 
           {/* End Date */}
-          <TouchableOpacity onPress={() => setShowEndPicker(true)}>
+          {/* <TouchableOpacity onPress={() => setShowEndPicker(true)}>
             <TextInput
               style={styles.input}
               value={form?.end_date || ''}
@@ -97,7 +97,7 @@ const LactationRecordModal = ({
               placeholderTextColor="#888"
               editable={false}
             />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           {showEndPicker && (
             <DateTimePicker

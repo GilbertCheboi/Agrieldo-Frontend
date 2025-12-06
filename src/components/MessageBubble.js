@@ -1,9 +1,31 @@
 import React, {useEffect, useRef} from 'react';
-import {View, StyleSheet, Animated} from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Animated,
+  TouchableOpacity,
+  Platform,
+  Alert,
+  ToastAndroid,
+  Image,
+  Text,
+} from 'react-native';
 import Markdown from 'react-native-markdown-display';
+import Clipboard from '@react-native-clipboard/clipboard';
+import AgrieldoLogo from '../assets/logo.png'; // 👉 update path if needed
 
-const MessageBubble = ({text, isUser}) => {
+const MessageBubble = ({
+  id,
+  text,
+  isUser,
+  timestamp,
+  onDelete,
+  onRegenerate, // only for AI messages
+  showAvatar = true,
+  userInitials = 'GK', // TODO: replace with dynamic initials
+}) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const isAi = !isUser;
 
   useEffect(() => {
     Animated.timing(fadeAnim, {
@@ -13,20 +35,115 @@ const MessageBubble = ({text, isUser}) => {
     }).start();
   }, [fadeAnim]);
 
+  const handleCopy = () => {
+    if (!text) return;
+    Clipboard.setString(text);
+    if (Platform.OS === 'android') {
+      ToastAndroid.show('Copied to clipboard', ToastAndroid.SHORT);
+    } else {
+      Alert.alert('Copied', 'Message copied to clipboard');
+    }
+  };
+
+  const handleLongPress = () => {
+    const buttons = [
+      {
+        text: 'Copy',
+        onPress: handleCopy,
+      },
+    ];
+
+    if (onDelete) {
+      buttons.push({
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => onDelete(id),
+      });
+    }
+
+    if (isAi && onRegenerate) {
+      buttons.push({
+        text: 'Regenerate response',
+        onPress: () => onRegenerate(id),
+      });
+    }
+
+    buttons.push({text: 'Cancel', style: 'cancel'});
+
+    Alert.alert('Message actions', 'What would you like to do?', buttons, {
+      cancelable: true,
+    });
+  };
+
+  const formatTime = ts => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const hours = d.getHours();
+    const minutes = d.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hh = ((hours + 11) % 12) + 1;
+    return `${hh}:${minutes} ${ampm}`;
+  };
+
+  const timeText = formatTime(timestamp);
+
   return (
     <Animated.View
       style={[
-        styles.bubbleContainer,
-        isUser ? styles.alignRight : styles.alignLeft,
+        styles.row,
+        isUser ? styles.rowRight : styles.rowLeft,
         {opacity: fadeAnim},
       ]}>
-      <View
-        style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
-        <Markdown style={isUser ? markdownUser : markdownAI} mergeStyle={true}>
-          {text}
-        </Markdown>
-        <View style={[styles.tail, isUser ? styles.userTail : styles.aiTail]} />
-      </View>
+      {/* Avatar */}
+      {showAvatar && !isUser && (
+        <View style={styles.avatarContainer}>
+          <Image source={AgrieldoLogo} style={styles.aiAvatar} />
+        </View>
+      )}
+
+      {showAvatar && isUser && (
+        <View style={[styles.avatarContainer, styles.avatarRight]}>
+          <View style={styles.userAvatarCircle}>
+            <Text style={styles.userAvatarText}>{userInitials}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Bubble */}
+      <TouchableOpacity
+        activeOpacity={0.8}
+        onPress={handleCopy}
+        onLongPress={handleLongPress}
+        delayLongPress={250}
+        style={[
+          styles.bubbleContainer,
+          isUser ? styles.alignRight : styles.alignLeft,
+        ]}>
+        <View
+          style={[styles.bubble, isUser ? styles.userBubble : styles.aiBubble]}>
+          <Markdown
+            style={isUser ? markdownUser : markdownAI}
+            mergeStyle={true}>
+            {text || ''}
+          </Markdown>
+
+          {/* Timestamp */}
+          {!!timeText && (
+            <Text
+              style={[
+                styles.timestamp,
+                isUser ? styles.timestampUser : styles.timestampAI,
+              ]}>
+              {timeText}
+            </Text>
+          )}
+
+          {/* Tail */}
+          <View
+            style={[styles.tail, isUser ? styles.userTail : styles.aiTail]}
+          />
+        </View>
+      </TouchableOpacity>
     </Animated.View>
   );
 };
@@ -34,24 +151,61 @@ const MessageBubble = ({text, isUser}) => {
 export default MessageBubble;
 
 const styles = StyleSheet.create({
+  row: {
+    marginVertical: 4,
+    paddingHorizontal: 8,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  rowLeft: {
+    justifyContent: 'flex-start',
+  },
+  rowRight: {
+    justifyContent: 'flex-end',
+  },
+  avatarContainer: {
+    marginHorizontal: 4,
+  },
+  avatarRight: {
+    order: 2,
+  },
+  aiAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  userAvatarCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#333333',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userAvatarText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+
   bubbleContainer: {
-    marginVertical: 6,
-    maxWidth: '90%',
+    maxWidth: '95%',
+    paddingBottom: 10, // space for tail + timestamp
   },
   alignRight: {
-    alignSelf: 'flex-end',
+    alignItems: 'flex-end',
   },
   alignLeft: {
-    alignSelf: 'flex-start',
+    alignItems: 'flex-start',
   },
   bubble: {
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 18,
     position: 'relative',
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 3,
     elevation: 2,
   },
@@ -65,14 +219,13 @@ const styles = StyleSheet.create({
   },
   tail: {
     position: 'absolute',
-    bottom: 0,
+    bottom: -2,
     width: 0,
     height: 0,
     borderStyle: 'solid',
   },
   userTail: {
     right: -6,
-    borderRightWidth: 0,
     borderLeftWidth: 8,
     borderBottomWidth: 10,
     borderLeftColor: 'transparent',
@@ -80,11 +233,23 @@ const styles = StyleSheet.create({
   },
   aiTail: {
     left: -6,
-    borderLeftWidth: 0,
     borderRightWidth: 8,
     borderBottomWidth: 10,
     borderRightColor: 'transparent',
     borderBottomColor: '#F8F8F8',
+  },
+
+  timestamp: {
+    fontSize: 10,
+    marginTop: 4,
+  },
+  timestampUser: {
+    color: '#ccc',
+    alignSelf: 'flex-end',
+  },
+  timestampAI: {
+    color: '#999',
+    alignSelf: 'flex-start',
   },
 });
 
@@ -97,7 +262,12 @@ const markdownAI = {
     fontWeight: 'bold',
     marginBottom: 6,
   },
-  heading2: {color: '#ffa500', fontSize: 18, fontWeight: 'bold', marginTop: 10},
+  heading2: {
+    color: '#ffa500',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 10,
+  },
   heading3: {color: '#0a6847', fontSize: 16, fontWeight: '600', marginTop: 8},
   strong: {color: '#333333'},
   em: {color: '#555', fontStyle: 'italic'},

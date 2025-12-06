@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
   StyleSheet,
   Modal,
+  RefreshControl,
 } from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import {fetchDailyMilkProductionSummary} from '../utils/api';
 import MilkProductionForm from './MilkProductionForm';
 
@@ -18,25 +20,42 @@ const ProductionHistoryScreen = () => {
   const [dailyProduction, setDailyProduction] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const data = await fetchDailyMilkProductionSummary();
-        const records = Array.isArray(data) ? data : data.results || [];
-        const sortedData = records.sort(
-          (a, b) => new Date(b.date) - new Date(a.date),
-        );
-        setDailyProduction(sortedData);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setLoading(false);
-      }
+  // 🔄 Load data function used by both focus and pull-to-refresh
+  const loadData = async () => {
+    try {
+      if (!refreshing) setLoading(true);
+
+      const data = await fetchDailyMilkProductionSummary();
+      const records = Array.isArray(data) ? data : data.results || [];
+
+      const sortedData = records.sort(
+        (a, b) => new Date(b.date) - new Date(a.date),
+      );
+
+      setDailyProduction(sortedData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  // 🔁 Auto-refresh every time screen is revisited
+  useFocusEffect(
+    React.useCallback(() => {
+      loadData();
+    }, []),
+  );
+
+  // 🔄 Pull to refresh handler
+  const onRefresh = () => {
+    setRefreshing(true);
     loadData();
-  }, []);
+  };
 
   const totalPages = Math.ceil(dailyProduction.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -45,7 +64,7 @@ const ProductionHistoryScreen = () => {
     startIndex + ITEMS_PER_PAGE,
   );
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#333333" />
@@ -57,51 +76,58 @@ const ProductionHistoryScreen = () => {
     <View style={styles.container}>
       <Text style={styles.title}>Milk Production History</Text>
 
-      {/* Table Header */}
-      <ScrollView horizontal>
-        <View>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.headerCell, {flex: 1.2}]}>Date</Text>
-            <Text style={styles.headerCell}>Milk Yield (L)</Text>
-            <Text style={styles.headerCell}>Feed (kg)</Text>
-            <Text style={styles.headerCell}>Price/L</Text>
-            <Text style={styles.headerCell}>Fat %</Text>
-            <Text style={styles.headerCell}>Protein %</Text>
-            <Text style={styles.headerCell}>SCC</Text>
-          </View>
+      {/* Main ScrollView with Pull to Refresh */}
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+        horizontal={false}>
+        <ScrollView horizontal>
+          <View>
+            {/* Table Header */}
+            <View style={styles.tableHeader}>
+              <Text style={[styles.headerCell, {flex: 1.2}]}>Date</Text>
+              <Text style={styles.headerCell}>Milk Yield (L)</Text>
+              <Text style={styles.headerCell}>Feed (kg)</Text>
+              <Text style={styles.headerCell}>Price/L</Text>
+              <Text style={styles.headerCell}>Fat %</Text>
+              <Text style={styles.headerCell}>Protein %</Text>
+              <Text style={styles.headerCell}>SCC</Text>
+            </View>
 
-          {/* Table Rows */}
-          <ScrollView style={{maxHeight: 450}}>
-            {paginatedData.map((item, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.tableRow,
-                  index % 2 === 0 && {backgroundColor: '#f5f5f5'},
-                ]}>
-                <Text style={[styles.cell, {flex: 1.2}]}>{item.date}</Text>
-                <Text style={styles.cell}>
-                  {item.total_milk_yield?.toFixed(2) || 'N/A'}
-                </Text>
-                <Text style={styles.cell}>
-                  {item.total_feed_consumption?.toFixed(2) || 'N/A'}
-                </Text>
-                <Text style={styles.cell}>
-                  {item.avg_price_per_liter || 'N/A'}
-                </Text>
-                <Text style={styles.cell}>
-                  {item.avg_fat_percentage?.toFixed(2) || 'N/A'}
-                </Text>
-                <Text style={styles.cell}>
-                  {item.avg_protein_percentage?.toFixed(2) || 'N/A'}
-                </Text>
-                <Text style={styles.cell}>
-                  {item.avg_scc?.toFixed(2) || 'N/A'}
-                </Text>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
+            {/* Table Rows */}
+            <ScrollView style={{maxHeight: 450}}>
+              {paginatedData.map((item, index) => (
+                <View
+                  key={index}
+                  style={[
+                    styles.tableRow,
+                    index % 2 === 0 && {backgroundColor: '#f5f5f5'},
+                  ]}>
+                  <Text style={[styles.cell, {flex: 1.2}]}>{item.date}</Text>
+                  <Text style={styles.cell}>
+                    {item.total_milk_yield?.toFixed(2) || 'N/A'}
+                  </Text>
+                  <Text style={styles.cell}>
+                    {item.total_feed_consumption?.toFixed(2) || 'N/A'}
+                  </Text>
+                  <Text style={styles.cell}>
+                    {item.avg_price_per_liter || 'N/A'}
+                  </Text>
+                  <Text style={styles.cell}>
+                    {item.avg_fat_percentage?.toFixed(2) || 'N/A'}
+                  </Text>
+                  <Text style={styles.cell}>
+                    {item.avg_protein_percentage?.toFixed(2) || 'N/A'}
+                  </Text>
+                  <Text style={styles.cell}>
+                    {item.avg_scc?.toFixed(2) || 'N/A'}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        </ScrollView>
       </ScrollView>
 
       {/* Pagination */}
@@ -135,7 +161,7 @@ const ProductionHistoryScreen = () => {
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
-      {/* Modal for MilkProductionForm */}
+      {/* Modal for Adding Records */}
       <Modal visible={showModal} animationType="slide">
         <MilkProductionForm onClose={() => setShowModal(false)} />
       </Modal>
@@ -153,7 +179,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Table styles
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#333333',
@@ -168,6 +193,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 13,
   },
+
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 10,
@@ -209,6 +235,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   fabText: {color: '#ffa500', fontSize: 28},
+
   center: {flex: 1, justifyContent: 'center', alignItems: 'center'},
 });
 

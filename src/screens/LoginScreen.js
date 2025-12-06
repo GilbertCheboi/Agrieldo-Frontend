@@ -27,12 +27,11 @@ const LoginScreen = () => {
     try {
       setLoading(true);
 
-      // 🧹 CLEAN USER INPUT (remove spaces)
       const cleanedUsername = username.trim();
       const cleanedPassword = password.trim();
 
       const response = await axios.post(
-        'http://api.agrieldo.com/api/accounts/api/token/',
+        'http://95.179.245.72:8000/api/accounts/api/token/',
         {
           username: cleanedUsername,
           password: cleanedPassword,
@@ -45,19 +44,31 @@ const LoginScreen = () => {
         throw new Error('User type missing in server response');
       }
 
-      const userType = user_type.toString().toLowerCase();
-      console.log('✅ Logging in user of type:', userType);
+      const userType = Number(user_type);
+      console.log('▶ Logged in as user type:', userType);
 
       await AsyncStorage.multiSet([
         ['access_token', access.toString()],
         ['refresh_token', refresh.toString()],
-        ['user_type', userType],
+        ['user_type', userType.toString()],
       ]);
 
-      let routeName;
-      if (userType === 'vet') routeName = 'VetDrawerNavigator';
-      else if (userType === 'staff') routeName = 'StaffDrawerNavigator';
-      else routeName = 'FarmerDrawerNavigator';
+      // -------------------------------------------
+      // 🚀 ROUTING BASED ON USER TYPE
+      // -------------------------------------------
+      let routeName = 'FarmerDrawerNavigator'; // default fallback
+
+      if (userType === 5) {
+        routeName = 'ManagerDrawerNavigator';
+      } else if (userType === 6) {
+        routeName = 'ClerkDrawerNavigator';
+      } else if (userType === 2) {
+        routeName = 'VetDrawerNavigator';
+      } else if (userType === 3) {
+        routeName = 'StaffDrawerNavigator';
+      } else {
+        routeName = 'FarmerDrawerNavigator'; // type 1 farmer OR unknown type
+      }
 
       navigation.dispatch(
         CommonActions.reset({
@@ -66,10 +77,7 @@ const LoginScreen = () => {
         }),
       );
     } catch (error) {
-      console.error(
-        'Login failed:',
-        error.response?.data || error.message || error,
-      );
+      console.error('Login failed:', error.response?.data || error.message);
       Alert.alert('Login Failed', 'Please check your credentials or server.');
     } finally {
       setLoading(false);
